@@ -6,7 +6,7 @@
 // Usage: node serve-with-proxy.js <jellyfin-server-url>
 // Example: node serve-with-proxy.js https://demo.jellyfin.org/unstable
 //
-// In JellyDinosaur, set the server address to: http://<this-machine>:20005/jellyfin
+// In DinosaurBooks, set the server address to: http://<this-machine>:20005/jellyfin
 //
 // Only relies on Node's built-in modules (no "npm install" needed).
 
@@ -44,7 +44,6 @@ var MIME_TYPES = {
     ".js": "application/javascript; charset=utf-8",
     ".css": "text/css; charset=utf-8",
     ".json": "application/json; charset=utf-8",
-    ".swf": "application/x-shockwave-flash",
     ".png": "image/png",
     ".jpg": "image/jpeg",
     ".jpeg": "image/jpeg",
@@ -118,7 +117,7 @@ var server = http.createServer(function(req, res) {
 });
 
 server.listen(PORT, function() {
-    console.log("JellyDinosaur is available at http://localhost:" + PORT + "/");
+    console.log("DinosaurBooks is available at http://localhost:" + PORT + "/");
     console.log("Jellyfin server (" + target + ") proxied under http://localhost:" + PORT + PROXY_PREFIX);
-    console.log("In JellyDinosaur, use as server address: http://<this-machine>:" + PORT + PROXY_PREFIX);
+    console.log("In DinosaurBooks, use as server address: http://<this-machine>:" + PORT + PROXY_PREFIX);
 });

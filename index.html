@@ -6,7 +6,7 @@
          virtuelle tres large puis la reduisent, ce qui rend le texte minuscule. Les vieux
          navigateurs qui ne connaissent pas cette balise l'ignorent simplement. -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JellyDinosaur</title>
+    <title>DinosaurBooks</title>
     <style>
       body { font-family: sans-serif; margin: 20px; }
       .section { border: 1px solid #ccc; padding: 10px; margin-bottom: 20px; }
@@ -23,14 +23,7 @@
       .category-title { font-weight: bold; font-size: 1.2em; margin-top: 10px; }
       .app-version { margin: -12px 0 20px 0; }
       .error-message { color: red; font-weight: bold; border: 1px solid red; padding: 10px; margin-bottom: 20px; }
-      table { border-collapse: collapse; margin: 5px 0; }
-      td { padding: 2px 12px 2px 0; }
       img { max-width: 100%; height: auto; }
-      /* vertical-align:middle sur le slider seul ne suffit pas : les <span> voisins restent alignés
-         sur leur baseline par défaut (référence différente de "middle"), d'où un léger décalage
-         visuel malgré des centres de boîte proches. On aligne les trois éléments de la ligne
-         (libellé, slider, affichage du temps) sur la même référence "middle". */
-      .v-mid { vertical-align: middle; }
 
       /* Les media queries sont comprises par les navigateurs mobiles vises et par Firefox 3.5.
          Un navigateur plus ancien qui ne les comprend pas conserve simplement la presentation
@@ -46,30 +39,18 @@
         .item-entry { padding: 4px 0; }
         button { max-width: 100%; padding: 7px 8px; margin: 3px 1px; font-size: 1em; line-height: 1.25; white-space: normal; }
         select { max-width: 100%; font-size: 1em; }
-        #serverUrl, #apiKey, #username, #password,
-        #movieSearch, #seriesSearch, #channelSearch {
+        #serverUrl, #apiKey, #username, #password, #bookSearch {
           display: block; width: 100%; margin: 4px 0 8px 0; padding: 5px;
           font-size: 1em; -moz-box-sizing: border-box; box-sizing: border-box;
         }
-        #movieGenreFilter, #seriesGenreFilter,
-        #seasonSelect, #episodeSelect, #audioSelect, #subtitleSelect {
-          display: block; margin: 4px 0 8px 0;
-        }
-        #startTimeSlider, #startTimeSliderFlash { max-width: 60%; }
-        .setting-field { display: block; margin-bottom: 7px; }
-        .setting-separator { display: none; }
-        .start-time-label { display: block; margin-bottom: 2px; }
-        #channelPager { text-align: center; }
-        #channelPager button, #channelPager span { display: block; margin-left: auto; margin-right: auto; }
-        table { width: 100%; table-layout: fixed; }
-        td { padding-right: 6px; word-wrap: break-word; vertical-align: top; }
+        #bookGenreFilter { display: block; margin: 4px 0 8px 0; }
         a { line-height: 1.7; }
       }
     </style>
 </head>
 <body>
 
-    <h1>JellyDinosaur</h1>
+    <h1>DinosaurBooks</h1>
     <div class="app-version"><small><i>Version 1.1.1</i></small></div>
 
     <div id="errorBanner" class="error-message hidden">
@@ -123,237 +104,26 @@
     </div>
 
     <div id="library" class="section hidden">
-        <h3 data-i18n="libraryTitle">Bibliothèque</h3>
-        <div id="categoryChoice">
-            <button id="btnBack" data-i18n="backToConfig">Retour vers la configuration</button>
-            <div class="item-entry" id="linkMovies">Films</div>
-            <div class="item-entry" id="linkSeries">Séries</div>
-            <!-- Masqué tant qu'on ne sait pas si le serveur a de la TV en direct : révélé
-                 uniquement si /LiveTv/Channels annonce au moins une chaîne (voir loadChannelCount()). -->
-            <div class="item-entry hidden" id="linkLiveTv">TV en direct</div>
-        </div>
-        <div id="movies" class="hidden">
-            <button id="btnBackCategoryMovies" data-i18n="backToLibraryChoice">Retour vers la bibliothèque</button>
-            <div class="category-title" id="moviesTitle">Films</div>
-            <span data-i18n="search">Recherche :</span> <input type="text" id="movieSearch"><br>
-            <span data-i18n="genreFilterLabel">Genre :</span> <select id="movieGenreFilter"><option value="" data-i18n="allGenres">Tous les genres</option></select><br><br>
-            <div id="movieList" class="grid-container"></div>
-        </div>
-        <div id="series" class="hidden">
-            <button id="btnBackCategorySeries" data-i18n="backToLibraryChoice">Retour vers la bibliothèque</button>
-            <div class="category-title" id="seriesTitle">Séries</div>
-            <span data-i18n="search">Recherche :</span> <input type="text" id="seriesSearch"><br>
-            <span data-i18n="genreFilterLabel">Genre :</span> <select id="seriesGenreFilter"><option value="" data-i18n="allGenres">Tous les genres</option></select><br><br>
-            <div id="seriesList" class="grid-container"></div>
-        </div>
-        <!-- TV en direct : contrairement aux films/séries (chargés une fois puis filtrés côté
-             navigateur), la liste des chaînes est paginée ET recherchée côté serveur. Une grille
-             IPTV se compte souvent en milliers de chaînes (13840 sur le serveur de test, soit ~5 Mo
-             de JSON) : tout charger ferait exploser aussi bien l'analyse JSON que le nombre de
-             noeuds DOM sur les navigateurs visés par ce projet. -->
-        <div id="livetv" class="hidden">
-            <button id="btnBackCategoryLiveTv" data-i18n="backToLibraryChoice">Retour vers la bibliothèque</button>
-            <div class="category-title" id="liveTvTitle">TV en direct</div>
-            <p><i data-i18n="liveTvHint">La recherche et la navigation portent sur toutes les chaînes du serveur, page par page. Une recherche vide affiche la grille complète dans l'ordre alphabétique.</i></p>
-            <span data-i18n="search">Recherche :</span> <input type="text" id="channelSearch"><br><br>
-            <div id="channelList"></div>
-            <div id="channelPager">
-                <button id="btnChannelsPrev" data-i18n="previousPage">Page précédente</button>
-                <span id="channelsPageInfo"></span>
-                <button id="btnChannelsNext" data-i18n="nextPage">Page suivante</button>
-            </div>
-        </div>
+        <button id="btnBack" data-i18n="backToConfig">Retour vers la configuration</button>
+        <h3 id="booksTitle">Livres</h3>
+        <span data-i18n="search">Recherche :</span> <input type="text" id="bookSearch"><br>
+        <span data-i18n="genreFilterLabel">Genre :</span> <select id="bookGenreFilter"><option value="" data-i18n="allGenres">Tous les genres</option></select><br><br>
+        <p id="noBooks" class="hidden"><i data-i18n="noBooks">Aucun livre sur ce serveur (ou aucun livre accessible à ce compte).</i></p>
+        <div id="bookList" class="grid-container"></div>
     </div>
 
     <div id="detail" class="section hidden">
         <button id="btnBackLibrary" data-i18n="backToLibrary">Retour vers la bibliothèque</button>
         <h3 id="detailTitle" data-i18n="detailsDefaultTitle">Détails</h3>
-        <!-- Ligne d'état propre à la TV en direct : ouvrir une chaîne demande au serveur de contacter
-             le tuner (plusieurs secondes), et cet état conditionne la lecture (voir openLiveStream()). -->
-        <div id="liveStatus" class="hidden"></div>
         <div id="detailContent"></div>
-        <div id="seriesOptions" class="hidden">
-            <span data-i18n="seasonLabel">Saison :</span> <select id="seasonSelect"></select>
-            <span data-i18n="episodeLabel">Épisode :</span> <select id="episodeSelect"></select>
-        </div>
-        <div id="playbackOptions">
-            <div class="section">
-                <h4 data-i18n="contentAccessDirectPlayTitle">Accès au contenu (direct play)</h4>
-                <!-- Deux avertissements distincts (fichier / chaîne en direct) plutôt qu'un seul texte
-                     réécrit à la volée : data-i18n est appliqué en bloc par applyTranslations(), qui
-                     écraserait une substitution faite au moment de l'affichage. Même principe pour les
-                     autres libellés qui changent entre un média et une chaîne (titres de blocs ci-dessous). -->
-                <p id="directPlayDisclaimerFile"><i data-i18n="directPlayDisclaimer">Le direct play envoie le fichier tel qu'il se trouve sur le serveur, sans aucune conversion. Le fichier vidéo peut être volumineux et son format peut ne pas être compatible avec la lecture dans le navigateur utilisé.</i></p>
-                <p id="directPlayDisclaimerLive" class="hidden"><i data-i18n="directPlayDisclaimerLive">Le direct play envoie la chaîne telle qu'elle est diffusée, sans aucune conversion. C'est la seule façon de conserver toutes les pistes audio et sous-titres de la chaîne, mais le format est rarement lisible dans un navigateur : copiez plutôt le lien vers un lecteur externe (VLC/PowerVLC/MPlayer).</i></p>
-
-                <div class="section">
-                    <h5 id="fileInfoBlockTitleFile" data-i18n="fileInfoBlockTitle">Fichier</h5>
-                    <h5 id="fileInfoBlockTitleLive" class="hidden" data-i18n="sourceInfoBlockTitle">Source du flux</h5>
-                    <div id="fileInfoContent"></div>
-                </div>
-
-                <div class="section">
-                    <h5 data-i18n="videoInfoBlockTitle">Vidéo</h5>
-                    <div id="videoInfoContent"></div>
-                </div>
-
-                <a id="directPlayStreamLink" href="#" style="cursor:pointer" data-i18n="copyStreamLink">Copier lien stream</a>
-                &nbsp;|&nbsp;
-                <a id="directPlayPlayLink" href="#" style="cursor:pointer" data-i18n="streamButtonPlain">Lancer le stream</a>
-                <!-- Séparateur inclus dans le conteneur masquable : une chaîne en direct n'a pas de
-                     fichier à télécharger (flux sans fin), le lien ET son "|" disparaissent ensemble. -->
-                <span id="directPlayDownloadWrap">&nbsp;|&nbsp;
-                <a id="directPlayDownloadLink" href="#" style="cursor:pointer" data-i18n="downloadButton">Télécharger</a></span>
-            </div>
-
-            <div class="section">
-                <h4 data-i18n="transcodingSectionTitle">Transcodage</h4>
-
-                <div class="section" id="trackConfigBlock">
-                    <h5 data-i18n="trackConfigBlockTitle">Configuration des pistes</h5>
-                    <span data-i18n="audioLabel">Audio :</span> <select id="audioSelect"></select>
-                    <span data-i18n="subtitleLabel">Sous-titres :</span> <select id="subtitleSelect"></select>
-                </div>
-                <p id="liveTrackNote" class="hidden"><i data-i18n="liveTrackNote">Une chaîne en direct ne propose aucune piste numérotée (le serveur les annonce toutes à l'index -1) : le transcodage garde une seule piste audio, choisie par le serveur, et abandonne les sous-titres. Pour conserver toutes les pistes d'une chaîne, utilisez le direct play ci-dessus.</i></p>
-
-                <div class="section">
-                    <h5 data-i18n="qualityBlockTitle">Qualité</h5>
-                    <p><i data-i18n="serverLoadHint">Si le transcodage est trop lourd pour le serveur, essayez de baisser la résolution et la qualité de manière générale afin de réduire la charge du serveur. Vous pouvez savoir si le serveur a du mal si le stream ne se lance pas au bout de plusieurs secondes ou si le téléchargement est anormalement lent par rapport à la vitesse normale de votre connexion internet.</i></p>
-                    <span data-i18n="resolutionLabel">Résolution :</span> <select id="resSelect">
-                        <option value="240">240p</option>
-                        <option value="360">360p</option>
-                        <option value="480" selected>480p</option>
-                        <option value="720">720p</option>
-                        <option value="1080">1080p</option>
-                    </select>
-                    <br><br>
-                    <span data-i18n="qualityPresetLabel">Préréglages qualité (pour la résolution choisie) :</span>
-                    <button id="btnQualityLow" data-i18n="qualityLow">Basse qualité</button>
-                    <button id="btnQualityMedium" data-i18n="qualityMedium">Qualité moyenne</button>
-                    <button id="btnQualityHigh" data-i18n="qualityHigh">Haute qualité</button>
-                    <button id="btnQualityVeryHigh" data-i18n="qualityVeryHigh">Très haute qualité</button>
-                </div>
-
-                <div class="section">
-                    <h5 data-i18n="advancedSettingsTitle">Réglages avancés</h5>
-                    <!-- Zone de texte libre plutôt qu'une liste déroulante : plus simple à maintenir (pas besoin
-                         de garder une liste d'options synchronisée avec QUALITY_PRESETS) et laisse un utilisateur
-                         avancé choisir une valeur intermédiaire. La valeur est en Mbps (1 décimale) ; elle est
-                         convertie en bps via mbpsToBps() partout où le bitrate réel est utilisé. La validation
-                         (nombre positif, sous le plafond du niveau H.264 choisi) se fait dans validateBitrateInput().-->
-                    <span class="setting-field"><span data-i18n="bitrateLabel">Bitrate :</span> <input type="text" id="bitrateSelect" value="2.4" size="5"> Mbps</span>
-                    <span class="setting-separator">&nbsp;|&nbsp;</span>
-                    <span class="setting-field"><span data-i18n="audioBitrateLabel">Bitrate audio AAC :</span> <select id="audioBitrateSelect">
-                        <option value="128000">128 kbps</option>
-                        <option value="192000">192 kbps</option>
-                        <option value="256000" selected>256 kbps</option>
-                    </select></span>
-                    <span class="setting-separator">&nbsp;|&nbsp;</span>
-                    <span class="setting-field"><span data-i18n="levelLabel">Niveau H.264 :</span> <select id="levelSelect">
-                        <option value="3.0">3.0</option>
-                        <option value="3.1" selected>3.1</option>
-                        <option value="4.0">4.0</option>
-                        <option value="4.1">4.1</option>
-                        <option value="4.2">4.2</option>
-                        <option value="5.0">5.0</option>
-                        <option value="5.1">5.1</option>
-                        <option value="5.2">5.2</option>
-                    </select></span>
-                    <span class="setting-separator">&nbsp;|&nbsp;</span>
-                    <span class="setting-field"><span data-i18n="profileLabel">Profil d'encodage :</span> <select id="profileSelect">
-                        <option value="baseline">Baseline</option>
-                        <option value="main">Main</option>
-                        <option value="high" selected>High</option>
-                    </select></span>
-                    <br><br>
-                    <span class="setting-field"><span data-i18n="maxRefFramesLabel">Images de référence max :</span> <select id="maxRefFramesSelect">
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="4">4</option>
-                        <option value="5" selected>5</option>
-                        <option value="6">6</option>
-                        <option value="8">8</option>
-                        <option value="16">16</option>
-                    </select></span>
-                    <span class="setting-separator">&nbsp;|&nbsp;</span>
-                    <span class="setting-field"><span data-i18n="maxVideoBitDepthLabel">Profondeur de bits max :</span> <select id="maxVideoBitDepthSelect">
-                        <option value="8" selected>8-bit</option>
-                        <option value="10">10-bit</option>
-                    </select></span>
-                    <span class="setting-separator">&nbsp;|&nbsp;</span>
-                    <span class="setting-field"><span data-i18n="maxFramerateLabel">Framerate max :</span> <select id="maxFramerateSelect">
-                        <option value="30" selected>30 fps</option>
-                        <option value="60">60 fps</option>
-                    </select></span>
-                    <br><br>
-                    <div id="estimatedSizeBlock">
-                        <p><b data-i18n="estimatedSizeLabel">Taille estimée du contenu complet :</b> <span id="estimatedSizeText">-</span></p>
-                        <p><i data-i18n="estimatedSizeHint">Cette estimation est basée sur le bitrate vidéo/audio choisi et la durée totale du contenu. La taille réelle peut légèrement varier.</i></p>
-                    </div>
-                </div>
-
-                <div class="section">
-                    <h5 data-i18n="contentAccessTranscodedTitle">Accès au contenu (transcodé avec les paramètres choisis)</h5>
-
-                    <h6 id="hlsBlockTitleFile" data-i18n="hlsBlockTitle">m3u8 (permet l'avance rapide)</h6>
-                    <h6 id="hlsBlockTitleLive" class="hidden" data-i18n="hlsBlockTitleLive">m3u8 (playlist live)</h6>
-                    <a id="streamLink" href="#" style="cursor:pointer" data-i18n="copyStreamLink">Copier lien stream</a>
-                    &nbsp;|&nbsp;
-                    <a id="playHlsLink" href="#" style="cursor:pointer" data-i18n="streamButton">Lancer le stream</a>
-
-                    <h6 data-i18n="progressiveBlockTitle">Conteneur mp4</h6>
-                    <!-- "Démarrer à" : position de départ commune aux liens mp4 ci-dessous ET aux
-                         liens flv (Flash Player) plus bas. Le même contrôle est volontairement
-                         DUPLIQUÉ dans le bloc flv (curseurs synchronisés dans les deux sens, voir
-                         makeStartTimeSync()) pour que son effet sur chaque bloc soit évident.
-                         type="range" n'existe pas avant Firefox 23 / IE10 : un navigateur qui ne le connaît
-                         pas dégrade vers type="text" (comportement standard pour tout type non reconnu),
-                         restant utilisable (l'utilisateur tape un nombre de secondes à la main). getStartTimeTicks()
-                         gère cette valeur de façon défensive (parseInt(...) || 0) quel que soit le rendu obtenu,
-                         et onchange (ci-dessous, universellement supporté) prend le relais si oninput ne se
-                         déclenche pas, voir getStartTimeTicks()/updateStartTimeDisplay() plus bas. -->
-                    <!-- Enveloppé pour pouvoir disparaître en entier sur une chaîne en direct : un flux
-                         sans fin n'a pas de position de départ (startTimeTicks y est sans effet). -->
-                    <div id="startTimeRowMp4">
-                        <span class="v-mid start-time-label" data-i18n="startTimeLabel">Démarrer à :</span>
-                        <input class="v-mid" type="range" id="startTimeSlider" min="0" max="0" step="1" value="0">
-                        <span class="v-mid" id="startTimeDisplay">0:00</span>
-                    </div>
-                    <a id="progressiveStreamLink" href="#" style="cursor:pointer" data-i18n="copyStreamLink">Copier lien stream</a>
-                    &nbsp;|&nbsp;
-                    <a id="playLink" href="#" style="cursor:pointer" data-i18n="streamButtonLegacy">Lancer le stream (vieux navigateurs, sans avance rapide)</a>
-                    <span id="downloadLinkWrap">&nbsp;|&nbsp;
-                    <a id="downloadLink" href="#" style="cursor:pointer" data-i18n="downloadButton">Télécharger</a></span>
-
-                    <h6 data-i18n="flvBlockTitle">Conteneur flv (Flash Player)</h6>
-                    <!-- Clone synchronisé du "Démarrer à" du bloc mp4 (voir le commentaire là-haut) :
-                         le lecteur Flash n'a AUCUN seek intégré (impossible d'interrompre un transfert
-                         HTTP depuis ActionScript, chaque seek interne laissait un téléchargement
-                         fantôme, voir JellyDinosaurFlashPlayer.as), ce curseur est donc le SEUL
-                         moyen de choisir la position en Flash ; changer de position = relancer la
-                         lecture d'ici avec une nouvelle valeur. -->
-                    <div id="startTimeRowFlash">
-                        <span class="v-mid start-time-label" data-i18n="startTimeLabel">Démarrer à :</span>
-                        <input class="v-mid" type="range" id="startTimeSliderFlash" min="0" max="0" step="1" value="0">
-                        <span class="v-mid" id="startTimeDisplayFlash">0:00</span>
-                    </div>
-                    <a id="flashProjectorLink" href="#" style="cursor:pointer" data-i18n="copyStreamLinkFlashProjector">Copier lien stream (Projecteur Flash Standalone)</a>
-                    &nbsp;|&nbsp;
-                    <a id="playFlashLink" href="#" style="cursor:pointer" data-i18n="streamButtonFlash">Lancer le stream (Flash Player, le plug-in doit être installé)</a>
-                    <br>
-                    <small data-i18n="flashMinVersionNote">Nécessite Flash Player 9.0.115.0 ou supérieur (première version avec décodage H.264/AAC).</small>
-
-                    <br><br>
-
-                    <div id="downloadProgress" class="hidden">
-                        <p data-i18n="downloadInProgress">Téléchargement en cours...</p>
-                        <progress id="downloadProgressBar" max="100"></progress>
-                        <span id="downloadProgressText"></span>
-                        <button id="btnCancelDownload" data-i18n="cancelDownload">Annuler</button>
-                    </div>
-                </div>
-            </div>
+        <!-- Seul le fichier d'origine est proposé, via un vrai lien <a href> (et non window.open)
+             pour que les liseuses (ex. Tolino) et les navigateurs les plus anciens le traitent comme
+             un téléchargement ordinaire, y compris par un appui long / "Enregistrer la cible du lien". -->
+        <div id="bookOptions" class="section">
+            <h4 data-i18n="bookDownloadTitle">Téléchargement du livre</h4>
+            <div id="bookFileInfo"></div>
+            <p><a id="bookDownloadLink" href="#" data-i18n="downloadButton">Télécharger</a></p>
+            <p><i data-i18n="bookDownloadHint">Le fichier est envoyé tel qu'il se trouve sur le serveur. Sur une liseuse, ouvrez cette page dans son navigateur intégré : le livre téléchargé apparaît ensuite dans sa bibliothèque (formats EPUB et PDF généralement pris en charge).</i></p>
         </div>
     </div>
 
@@ -479,11 +249,9 @@
         // Microsoft pour ces deux versions, mais avec de fortes limitations : GET/POST uniquement, aucun
         // en-tête personnalisé, et aucun code de statut HTTP exploitable (seuls onload/onerror/ontimeout
         // existent). Utilisable donc uniquement pour des requêtes sans authentification par en-tête
-        // (ajax()/pingServer()/ajaxPost(), qui passent déjà la clé API en paramètre de requête) ;
+        // (ajax()/pingServer(), qui passent déjà la clé API en paramètre de requête) ;
         // loginWithPassword() a besoin des en-têtes Authorization/Content-Type et ne peut pas s'appuyer
-        // dessus. Le nom parle de GET pour la raison historique que c'était alors le seul usage : la
-        // fabrique elle-même ne présume de rien, et ajaxPost() s'en sert aussi (XDomainRequest sait
-        // faire GET et POST, et rien d'autre).
+        // dessus.
         function createCrossDomainGetRequest(url) {
             if (typeof XDomainRequest !== "undefined" && isCrossOrigin(url)) {
                 return new XDomainRequest();
@@ -524,7 +292,7 @@
         var apiKey = "";
 
         // Multi-langue : dictionnaire de toutes les chaînes affichées à l'utilisateur
-        var LANG_KEY = "jellyDinosaurLang";
+        var LANG_KEY = "dinosaurBooksLang";
         var currentLang = "fr";
 
         var STRINGS = {
@@ -540,7 +308,6 @@
                 backToServer: "Retour vers l'adresse du serveur",
                 backToAuthChoice: "Retour vers le choix d'authentification",
                 backToConfig: "Retour vers la configuration",
-                backToLibraryChoice: "Retour vers la bibliothèque",
                 backToLibrary: "Retour vers la bibliothèque",
                 authChoicePrompt: "Comment souhaitez-vous vous authentifier ?",
                 authApiKeyOption: "Clé API",
@@ -555,126 +322,23 @@
                 rememberMe: "Se souvenir de moi",
                 clearSavedCredentials: "Supprimer les identifiants mémorisés",
                 credentialsCleared: "Identifiants mémorisés supprimés.",
-                libraryTitle: "Bibliothèque",
-                movies: "Films",
-                series: "Séries",
-                liveTv: "TV en direct",
-                movieLabel: "Film",
-                seriesLabel: "Série",
-                channelLabel: "Chaîne TV",
-                liveTvHint: "La recherche et la navigation portent sur toutes les chaînes du serveur, page par page. Une recherche vide affiche la grille complète dans l'ordre alphabétique.",
-                previousPage: "Page précédente",
-                nextPage: "Page suivante",
-                channelsPageInfo: "Chaînes {from} à {to} sur {total}",
-                noChannelFound: "Aucune chaîne ne correspond à cette recherche.",
-                loadingChannels: "Chargement des chaînes...",
-                channelNumberLabel: "Numéro",
-                currentProgramLabel: "En ce moment",
-                openingChannel: "Ouverture de la chaîne sur le serveur...",
-                liveOpenFailed: "Le serveur n'a pas pu ouvrir cette chaîne : {error}. La lecture a peu de chances de fonctionner.",
-                liveNotReady: "La chaîne est encore en cours d'ouverture sur le serveur, patientez quelques secondes.",
-                directPlayDisclaimerLive: "Le direct play envoie la chaîne telle qu'elle est diffusée, sans aucune conversion. C'est la seule façon de conserver toutes les pistes audio et les sous-titres de la chaîne, mais le format est rarement lisible dans un navigateur : copiez plutôt le lien vers un lecteur externe (VLC/PowerVLC/MPlayer).",
-                sourceInfoBlockTitle: "Source du flux",
-                hlsBlockTitleLive: "m3u8 (playlist live)",
-                liveTrackNote: "Une chaîne en direct ne propose aucune piste numérotée (le serveur les annonce toutes à l'index -1) : le transcodage garde une seule piste audio, choisie par le serveur, et abandonne les sous-titres. Pour conserver toutes les pistes d'une chaîne, utilisez le direct play ci-dessus.",
+                books: "Livres",
+                noBooks: "Aucun livre sur ce serveur (ou aucun livre accessible à ce compte).",
+                bookLabel: "Livre",
                 search: "Recherche :",
                 genreFilterLabel: "Genre :",
                 allGenres: "Tous les genres",
                 detailsDefaultTitle: "Détails",
-                seasonLabel: "Saison :",
-                episodeLabel: "Épisode :",
-                episodeAbbrev: "Ép.",
-                audioLabel: "Audio :",
-                subtitleLabel: "Sous-titres :",
-                trackConfigBlockTitle: "Configuration des pistes",
-                qualityBlockTitle: "Qualité",
-                serverLoadHint: "Si le transcodage est trop lourd pour le serveur, essayez de baisser la résolution et la qualité de manière générale afin de réduire la charge du serveur. Vous pouvez savoir si le serveur a du mal si le stream ne se lance pas au bout de plusieurs secondes ou si le téléchargement est anormalement lent par rapport à la vitesse normale de votre connexion internet.",
-                resolutionLabel: "Résolution :",
-                qualityPresetLabel: "Préréglages qualité (pour la résolution choisie) :",
-                qualityLow: "Basse qualité",
-                qualityMedium: "Qualité moyenne",
-                qualityHigh: "Haute qualité",
-                qualityVeryHigh: "Très haute qualité",
-                advancedSettingsTitle: "Réglages avancés",
-                bitrateLabel: "Bitrate :",
-                bitrateInvalidLow: "Le bitrate doit être un nombre positif. Valeur corrigée à 0.1 Mbps.",
-                bitrateInvalidHigh: "Le bitrate dépasse le maximum autorisé par le niveau H.264 et le profil d'encodage choisis. Valeur corrigée à {max} Mbps.",
-                audioBitrateLabel: "Bitrate audio AAC :",
-                levelLabel: "Niveau H.264 :",
-                profileLabel: "Profil d'encodage :",
-                maxVideoBitDepthLabel: "Profondeur de bits max :",
-                maxRefFramesLabel: "Images de référence max :",
-                maxFramerateLabel: "Framerate max :",
-                estimatedSizeLabel: "Taille estimée du contenu complet :",
-                estimatedSizeHint: "Cette estimation est basée sur le bitrate vidéo/audio choisi et la durée totale du contenu. La taille réelle peut légèrement varier.",
-                estimatedSizeUnknown: "?",
-                contentAccessDirectPlayTitle: "Accès au contenu (direct play)",
-                directPlayDisclaimer: "Le direct play envoie le fichier tel qu'il se trouve sur le serveur, sans aucune conversion. Le fichier vidéo peut être volumineux et son format peut ne pas être compatible avec la lecture dans le navigateur utilisé.",
-                streamButtonPlain: "Lancer le stream",
-                fileInfoBlockTitle: "Fichier",
-                fileInfoContainer: "Conteneur",
-                fileInfoPath: "Chemin",
-                fileInfoSize: "Taille",
-                byteUnitB: "o",
-                byteUnitKB: "Ko",
-                byteUnitMB: "Mo",
-                byteUnitGB: "Go",
-                videoInfoBlockTitle: "Vidéo",
-                videoInfoTitle: "Titre",
-                videoInfoCodec: "Codec",
-                videoInfoAvc: "AVC",
-                videoInfoProfile: "Profil",
-                videoInfoLevel: "Niveau",
-                videoInfoResolution: "Résolution",
-                videoInfoAspectRatio: "Format d'image",
-                videoInfoAnamorphic: "Anamorphique",
-                videoInfoInterlaced: "Entrelacé",
-                videoInfoFramerate: "Images par seconde",
-                videoInfoBitrate: "Débit",
-                videoInfoBitDepth: "Profondeur de bit",
-                videoInfoRange: "Plage vidéo",
-                videoInfoRangeType: "Type de plage vidéo",
-                videoInfoPixelFormat: "Format de pixel",
-                videoInfoRefFrames: "Images de référence",
-                videoInfoNal: "NAL",
-                yes: "Oui",
-                no: "Non",
-                transcodingSectionTitle: "Transcodage",
-                contentAccessTranscodedTitle: "Accès au contenu (transcodé avec les paramètres choisis)",
-                hlsBlockTitle: "m3u8 (permet l'avance rapide)",
-                progressiveBlockTitle: "Conteneur mp4",
-                startTimeLabel: "Démarrer à :",
-                flvBlockTitle: "Conteneur flv (Flash Player)",
-                copyStreamLink: "Copier lien stream",
-                copyStreamLinkFallback: "Copie automatique impossible sur ce navigateur. Copiez ce lien manuellement :",
-                streamButton: "Lancer le stream (navigateurs plus récents)",
-                streamButtonLegacy: "Lancer le stream (vieux navigateurs, sans avance rapide)",
-                streamButtonFlash: "Lancer le stream (Flash Player, le plug-in doit être installé)",
-                flashNotAvailable: "Le plug-in Flash Player n'a pas été détecté dans ce navigateur. Installez-le, ou utilisez un autre bouton de lecture.",
-                copyStreamLinkFlashProjector: "Copier lien stream (Projecteur Flash Standalone)",
-                flashMinVersionNote: "Nécessite Flash Player 9.0.115.0 ou supérieur (première version avec décodage H.264/AAC).",
-                hlsNotSupported: "Ce navigateur ne peut pas lire le flux directement. Utilisez le bouton \"Lancer le stream (vieux navigateurs, sans avance rapide)\".",
-                hlsJsLoadError: "Impossible de charger le lecteur HLS (fichier hls.min.js introuvable ou inaccessible sur le serveur). Utilisez le bouton \"Lancer le stream (vieux navigateurs, sans avance rapide)\" en attendant.",
-                hlsFatalError: "La lecture de ce flux a échoué. Essayez le bouton \"Lancer le stream (vieux navigateurs, sans avance rapide)\", ou copiez le lien du stream pour l'ouvrir dans un lecteur externe (VLC/PowerVLC/MPlayer).",
-                hlsFatalErrorLiveOrigin: "La lecture de ce flux a échoué. Cette chaîne est servie directement par une source tierce, qui n'autorise pas forcément la lecture depuis un navigateur. Utilisez plutôt le stream transcodé (bloc \"Transcodage\" ci-dessous), ou copiez ce lien pour l'ouvrir dans un lecteur externe (VLC/PowerVLC/MPlayer), qui n'a pas cette restriction.",
-                popupBlocked: "Le navigateur a bloqué l'ouverture du nouvel onglet. Autorisez les popups pour ce site et réessayez.",
-                downloadButton: "Télécharger",
-                downloading: "Téléchargement...",
-                downloadInProgress: "Téléchargement en cours...",
-                cancelDownload: "Annuler",
-                noSubtitle: "Aucun",
                 detailType: "Type",
-                detailReleaseDate: "Date de sortie",
-                detailDuration: "Durée",
-                durationHourAbbrev: "h",
-                durationMinuteAbbrev: "min",
+                detailAuthor: "Auteur",
+                detailReleaseDate: "Date de parution",
                 detailGenres: "Genres",
                 detailTags: "Étiquettes",
-                detailDirector: "Réalisateur",
-                detailStudio: "Studio",
-                detailCast: "Distribution :",
-                noMediaSelected: "Aucun média sélectionné.",
-                linkCopied: "Lien copié!",
+                detailPublisher: "Éditeur",
+                bookFormatLabel: "Format",
+                bookDownloadTitle: "Téléchargement du livre",
+                bookDownloadHint: "Le fichier est envoyé tel qu'il se trouve sur le serveur. Sur une liseuse, ouvrez cette page dans son navigateur intégré : le livre téléchargé apparaît ensuite dans sa bibliothèque (formats EPUB et PDF généralement pris en charge).",
+                downloadButton: "Télécharger",
                 serverRequired: "Merci de renseigner l'adresse du serveur.",
                 checkingServer: "Vérification...",
                 serverUnreachable: "Le serveur ne répond pas. Vérifiez l'adresse et réessayez.",
@@ -697,7 +361,6 @@
                 backToServer: "Back to server address",
                 backToAuthChoice: "Back to authentication choice",
                 backToConfig: "Back to configuration",
-                backToLibraryChoice: "Back to library",
                 backToLibrary: "Back to library",
                 authChoicePrompt: "How would you like to authenticate?",
                 authApiKeyOption: "API key",
@@ -712,126 +375,23 @@
                 rememberMe: "Remember me",
                 clearSavedCredentials: "Clear saved credentials",
                 credentialsCleared: "Saved credentials cleared.",
-                libraryTitle: "Library",
-                movies: "Movies",
-                series: "Series",
-                liveTv: "Live TV",
-                movieLabel: "Movie",
-                seriesLabel: "Series",
-                channelLabel: "TV channel",
-                liveTvHint: "Search and browsing cover every channel on the server, one page at a time. An empty search shows the whole line-up in alphabetical order.",
-                previousPage: "Previous page",
-                nextPage: "Next page",
-                channelsPageInfo: "Channels {from} to {to} of {total}",
-                noChannelFound: "No channel matches this search.",
-                loadingChannels: "Loading channels...",
-                channelNumberLabel: "Number",
-                currentProgramLabel: "On now",
-                openingChannel: "Opening the channel on the server...",
-                liveOpenFailed: "The server could not open this channel: {error}. Playback is unlikely to work.",
-                liveNotReady: "The channel is still being opened on the server, please wait a few seconds.",
-                directPlayDisclaimerLive: "Direct play sends the channel exactly as it is broadcast, with no conversion. It is the only way to keep every audio track and subtitle the channel carries, but the format is rarely playable in a browser: copy the link into an external player instead (VLC/PowerVLC/MPlayer).",
-                sourceInfoBlockTitle: "Stream source",
-                hlsBlockTitleLive: "m3u8 (live playlist)",
-                liveTrackNote: "A live channel exposes no numbered tracks (the server reports them all at index -1): transcoding keeps a single audio track, picked by the server, and drops the subtitles. To keep every track a channel carries, use direct play above.",
+                books: "Books",
+                noBooks: "No books on this server (or none this account can access).",
+                bookLabel: "Book",
                 search: "Search:",
                 genreFilterLabel: "Genre:",
                 allGenres: "All genres",
                 detailsDefaultTitle: "Details",
-                seasonLabel: "Season:",
-                episodeLabel: "Episode:",
-                episodeAbbrev: "Ep.",
-                audioLabel: "Audio:",
-                subtitleLabel: "Subtitles:",
-                trackConfigBlockTitle: "Track configuration",
-                qualityBlockTitle: "Quality",
-                serverLoadHint: "If transcoding is too heavy for the server, try lowering the resolution and quality overall to reduce the load on the server. You can tell the server is struggling if the stream doesn't start after several seconds, or if the download is abnormally slow compared to your usual internet speed.",
-                resolutionLabel: "Resolution:",
-                qualityPresetLabel: "Quality presets (for the chosen resolution):",
-                qualityLow: "Low quality",
-                qualityMedium: "Medium quality",
-                qualityHigh: "High quality",
-                qualityVeryHigh: "Very high quality",
-                advancedSettingsTitle: "Advanced settings",
-                bitrateLabel: "Bitrate:",
-                bitrateInvalidLow: "Bitrate must be a positive number. Value corrected to 0.1 Mbps.",
-                bitrateInvalidHigh: "Bitrate exceeds the maximum allowed by the chosen H.264 level and encoding profile. Value corrected to {max} Mbps.",
-                audioBitrateLabel: "Audio bitrate AAC:",
-                levelLabel: "H.264 level:",
-                profileLabel: "Encoding profile:",
-                maxVideoBitDepthLabel: "Max bit depth:",
-                maxRefFramesLabel: "Max reference frames:",
-                maxFramerateLabel: "Max framerate:",
-                estimatedSizeLabel: "Estimated size of the full content:",
-                estimatedSizeHint: "This estimate is based on the chosen video/audio bitrate and the content's total duration. The actual size may vary slightly.",
-                estimatedSizeUnknown: "?",
-                contentAccessDirectPlayTitle: "Content access (direct play)",
-                directPlayDisclaimer: "Direct play sends the file exactly as it is stored on the server, with no conversion. The video file may be large and its format may not be compatible with playback in the browser you are using.",
-                streamButtonPlain: "Start streaming",
-                fileInfoBlockTitle: "File",
-                fileInfoContainer: "Container",
-                fileInfoPath: "Path",
-                fileInfoSize: "Size",
-                byteUnitB: "B",
-                byteUnitKB: "KB",
-                byteUnitMB: "MB",
-                byteUnitGB: "GB",
-                videoInfoBlockTitle: "Video",
-                videoInfoTitle: "Title",
-                videoInfoCodec: "Codec",
-                videoInfoAvc: "AVC",
-                videoInfoProfile: "Profile",
-                videoInfoLevel: "Level",
-                videoInfoResolution: "Resolution",
-                videoInfoAspectRatio: "Aspect ratio",
-                videoInfoAnamorphic: "Anamorphic",
-                videoInfoInterlaced: "Interlaced",
-                videoInfoFramerate: "Frames per second",
-                videoInfoBitrate: "Bitrate",
-                videoInfoBitDepth: "Bit depth",
-                videoInfoRange: "Video range",
-                videoInfoRangeType: "Video range type",
-                videoInfoPixelFormat: "Pixel format",
-                videoInfoRefFrames: "Reference frames",
-                videoInfoNal: "NAL",
-                yes: "Yes",
-                no: "No",
-                transcodingSectionTitle: "Transcoding",
-                contentAccessTranscodedTitle: "Content access (transcoded with the chosen settings)",
-                hlsBlockTitle: "m3u8 (allows seeking)",
-                progressiveBlockTitle: "MP4 container",
-                startTimeLabel: "Start at:",
-                flvBlockTitle: "FLV container (Flash Player)",
-                copyStreamLink: "Copy stream link",
-                copyStreamLinkFallback: "Automatic copy is not supported on this browser. Copy this link manually:",
-                streamButton: "Start streaming (newer browsers)",
-                streamButtonLegacy: "Start streaming (legacy browsers, no seeking)",
-                streamButtonFlash: "Start streaming (Flash Player, plug-in required)",
-                flashNotAvailable: "The Flash Player plug-in was not detected in this browser. Install it, or use another playback button.",
-                copyStreamLinkFlashProjector: "Copy stream link (Standalone Flash Projector)",
-                flashMinVersionNote: "Requires Flash Player 9.0.115.0 or later (first version with H.264/AAC decoding).",
-                hlsNotSupported: "This browser cannot play the stream directly. Use the \"Start streaming (legacy browsers, no seeking)\" button instead.",
-                hlsJsLoadError: "Could not load the HLS player (hls.min.js file missing or unreachable on the server). Use the \"Start streaming (legacy browsers, no seeking)\" button in the meantime.",
-                hlsFatalError: "This stream could not be played. Try the \"Start streaming (legacy browsers, no seeking)\" button, or copy the stream link and open it in an external player (VLC/PowerVLC/MPlayer).",
-                hlsFatalErrorLiveOrigin: "This stream could not be played. This channel is served straight from a third-party source, which does not necessarily allow playback from a browser. Use the transcoded stream instead (the \"Transcoding\" block below), or copy this link and open it in an external player (VLC/PowerVLC/MPlayer), which has no such restriction.",
-                popupBlocked: "The browser blocked the new tab. Allow popups for this site and try again.",
-                downloadButton: "Download",
-                downloading: "Downloading...",
-                downloadInProgress: "Download in progress...",
-                cancelDownload: "Cancel",
-                noSubtitle: "None",
                 detailType: "Type",
-                detailReleaseDate: "Release date",
-                detailDuration: "Duration",
-                durationHourAbbrev: "h",
-                durationMinuteAbbrev: "min",
+                detailAuthor: "Author",
+                detailReleaseDate: "Publication date",
                 detailGenres: "Genres",
                 detailTags: "Tags",
-                detailDirector: "Director",
-                detailStudio: "Studio",
-                detailCast: "Cast:",
-                noMediaSelected: "No media selected.",
-                linkCopied: "Link copied!",
+                detailPublisher: "Publisher",
+                bookFormatLabel: "Format",
+                bookDownloadTitle: "Book download",
+                bookDownloadHint: "The file is sent exactly as it is stored on the server. On an e-reader, open this page in its built-in browser: the downloaded book then shows up in its library (EPUB and PDF are usually supported).",
+                downloadButton: "Download",
                 serverRequired: "Please enter the server address.",
                 checkingServer: "Checking...",
                 serverUnreachable: "The server is not responding. Check the address and try again.",
@@ -884,7 +444,7 @@
         }
 
         // Mémorisation de la dernière adresse de serveur validée, pour ne pas repartir du placeholder
-        var SERVER_URL_KEY = "jellyDinosaurServerUrl";
+        var SERVER_URL_KEY = "dinosaurBooksServerUrl";
 
         function saveServerUrl(url) {
             try {
@@ -900,259 +460,11 @@
             }
         }
 
-        // Item actuellement joignable (l'Id à utiliser pour PlaybackInfo/Stream) :
-        // - pour un Film : l'Id du film
-        // - pour une Série : l'Id de l'épisode sélectionné
-        var currentPlayableId = null;
-        // Durée réelle (en ticks Jellyfin, 100ns) de l'item actuellement joignable, connue côté client
-        // (RunTimeTicks de l'API) : utilisée pour le flashvar "knownduration" du lecteur Flash (voir
-        // jellydinosaur-flash-player.swf), qui ne peut pas la déduire du flux lui-même (transcodage en
-        // direct : la métadonnée FLV rapporte duration=0, durée finale inconnue de Jellyfin).
-        var currentPlayableRunTimeTicks = null;
-        // Item "parent" affiché dans la vue détail (Film ou Série)
+        // Livre affiché dans la vue détail
         var currentItem = null;
-        // Sous-vue affichée dans la bibliothèque : "categoryChoice", "movies", "series" ou "livetv"
-        var currentLibraryView = "categoryChoice";
-
-        // --- TV en direct ---------------------------------------------------------------------
-        // Vrai quand la vue détail affiche une chaîne (Type "TvChannel") et non un film/épisode :
-        // tout ce qui doit distinguer les deux interroge cet indicateur plutôt que de recevoir un
-        // paramètre supplémentaire de bout en bout.
-        var currentIsLive = false;
-        // Une chaîne n'est pas un fichier : le tuner doit être "ouvert" avant que le serveur ne
-        // serve quoi que ce soit (PlaybackInfo donne un OpenToken, /LiveStreams/Open le transforme
-        // en flux vivant). Ces trois valeurs ne sont connues qu'après cette ouverture, et toutes les
-        // URLs de lecture d'une chaîne doivent les porter.
-        var liveMediaSourceId = null;   // Id de la MediaSource ouverte (≠ Id de la chaîne)
-        var liveStreamId = null;        // identifiant du flux vivant qui maintient le tuner ouvert
-        var liveContainer = null;       // conteneur réellement servi par le tuner ("hls", "ts"...)
-        // Adresse d'origine du tuner quand elle est joignable depuis ce navigateur (playlist HLS
-        // distante) : la lire directement donne toutes les qualités et toutes les pistes annoncées
-        // par la chaîne, là où le serveur n'en relaierait qu'une seule (voir buildDirectPlayUrl()).
-        var liveOriginUrl = null;
-
-        // Pagination de la grille de chaînes (voir le commentaire du bloc #livetv) : une page à la
-        // fois, jamais toute la grille. 100 lignes restent confortables même sur un navigateur de
-        // 2005, tout en limitant le nombre d'allers-retours pour parcourir une grille moyenne.
-        var CHANNELS_PAGE_SIZE = 100;
-        var channelsStartIndex = 0;
-        var channelsTotalCount = 0;
-        var channelsQuery = "";
-        // Nombre total de chaînes annoncé par le serveur au chargement de la bibliothèque : sert
-        // uniquement à savoir s'il faut proposer l'entrée "TV en direct" (0 = pas de tuner).
-        var liveTvChannelCount = 0;
 
         // Mémorisation de la navigation dans localStorage, pour survivre à un rafraîchissement de page
-        var NAV_STATE_KEY = "jellyDinosaurNavState";
-        // Mémorisation des préférences de lecture (résolution/bitrate), indépendamment de la navigation
-        var PLAYBACK_PREFS_KEY = "jellyDinosaurPlaybackPrefs";
-
-        function savePlaybackPrefs() {
-            try {
-                localStorage.setItem(PLAYBACK_PREFS_KEY, JSON.stringify({
-                    res: document.getElementById("resSelect").value,
-                    bitrate: document.getElementById("bitrateSelect").value,
-                    audioBitrate: document.getElementById("audioBitrateSelect").value,
-                    level: document.getElementById("levelSelect").value,
-                    profile: document.getElementById("profileSelect").value,
-                    maxVideoBitDepth: document.getElementById("maxVideoBitDepthSelect").value,
-                    maxRefFrames: document.getElementById("maxRefFramesSelect").value,
-                    maxFramerate: document.getElementById("maxFramerateSelect").value
-                }));
-            } catch (e) {}
-        }
-
-        function restorePlaybackPrefs() {
-            try {
-                var raw = localStorage.getItem(PLAYBACK_PREFS_KEY);
-                if (!raw) {
-                    return;
-                }
-                var prefs = JSON.parse(raw);
-                if (prefs.res) {
-                    document.getElementById("resSelect").value = prefs.res;
-                }
-                if (prefs.bitrate) {
-                    document.getElementById("bitrateSelect").value = prefs.bitrate;
-                }
-                if (prefs.audioBitrate) {
-                    document.getElementById("audioBitrateSelect").value = prefs.audioBitrate;
-                }
-                if (prefs.level) {
-                    document.getElementById("levelSelect").value = prefs.level;
-                }
-                if (prefs.profile) {
-                    document.getElementById("profileSelect").value = prefs.profile;
-                }
-                if (prefs.maxVideoBitDepth) {
-                    document.getElementById("maxVideoBitDepthSelect").value = prefs.maxVideoBitDepth;
-                }
-                if (prefs.maxRefFrames) {
-                    document.getElementById("maxRefFramesSelect").value = prefs.maxRefFrames;
-                }
-                if (prefs.maxFramerate) {
-                    document.getElementById("maxFramerateSelect").value = prefs.maxFramerate;
-                }
-                // Revalide après restauration complète (niveau/profil compris, dont dépend le plafond) :
-                // corrige silencieusement une éventuelle valeur enregistrée avant le passage de
-                // #bitrateSelect d'une liste (bps) à un champ libre en Mbps (voir plus haut).
-                validateBitrateInput();
-            } catch (e) {}
-        }
-
-        // Préréglages qualité : pour chaque résolution (jamais modifiée par ces boutons), les valeurs
-        // recommandées des autres réglages de lecture. Le bitrate/niveau augmentent avec la résolution
-        // pour rester cohérents avec le plafond VBV du niveau H.264 choisi (voir buildHlsUrl()).
-        // La profondeur de bits 10-bit et le 60 FPS sont volontairement désactivés dans tous les profils
-        // à activer uniquement si vous savez ce que vous faites, à la main.
-        //
-        // Méthodologie des bitrates : mis à l'échelle par nombre de pixels par rapport au 1080p (avec
-        // un plancher généreux pour les petites résolutions, l'efficacité de compression par pixel
-        // étant moins bonne à faible résolution), avec des cibles ancrées sur des repères réels de
-        // diffusion (YouTube/Twitch) pour "low"/"medium", et une qualité de diffusion haut de gamme
-        // pour "high". Bitrates majorés d'environ +18% par rapport à un x264 logiciel équivalent car
-        // le serveur cible encode en h264_qsv (Intel Quick Sync, matériel) : les benchmarks
-        // communautaires mesurent ~10-23% de bitrate en plus nécessaire pour QSV afin d'atteindre la
-        // même qualité perçue qu'un x264 logiciel équivalent
-        // (https://forum.videohelp.com/threads/390413-x264-vs-Quick-Sync-Comparison).
-        // "veryHigh" vise seulement +50% par rapport à "high" (pas plus) : passé un certain point
-        // (environ 5-15 Mbps en 1080p selon la complexité du contenu), la courbe qualité/bitrate du
-        // H.264 plafonne déjà fortement -- doubler le bitrate pour viser une qualité proche
-        // archivage/Blu-ray n'apporte quasiment aucun gain perceptible pour la plupart des contenus,
-        // et gaspille de la bande passante, à l'opposé de l'objectif de ce projet (utilisateurs à
-        // connexion limitée). Voir par ex. https://www.testdevlab.com/blog/video-quality-comparison-for-h-264-at-different-resolutions-and-bitrates
-        // Chaque bitrate/profil reste sous le plafond VBV du niveau H.264 choisi (Annexe A du standard) :
-        // baseline niveau 3.0=10 Mbps, 3.1=14 Mbps, 4.0=20 Mbps, 4.1=50 Mbps ;
-        // high niveau 3.1=17.5 Mbps, 4.0=25 Mbps, 4.1=62.5 Mbps (facteur ×1.25 du profil High).
-        // ref frames à 16 en veryHigh car cela peut bénéficier aux animes/cartoons
-        var QUALITY_PRESETS = {
-            "240": {
-                low:      { bitrate: "350000",   audioBitrate: "128000", level: "3.0", profile: "baseline", maxVideoBitDepth: "8",  maxRefFrames: "1", maxFramerate: "30" },
-                medium:   { bitrate: "700000",   audioBitrate: "192000", level: "3.0", profile: "baseline", maxVideoBitDepth: "8",  maxRefFrames: "3", maxFramerate: "30" },
-                high:     { bitrate: "1400000",  audioBitrate: "256000", level: "3.1", profile: "high",     maxVideoBitDepth: "8",  maxRefFrames: "5", maxFramerate: "30" },
-                veryHigh: { bitrate: "2100000",  audioBitrate: "256000", level: "3.1", profile: "high",     maxVideoBitDepth: "8", maxRefFrames: "16", maxFramerate: "30" }
-            },
-            "360": {
-                low:      { bitrate: "600000",   audioBitrate: "128000", level: "3.0", profile: "baseline", maxVideoBitDepth: "8",  maxRefFrames: "1", maxFramerate: "30" },
-                medium:   { bitrate: "1200000",  audioBitrate: "192000", level: "3.1", profile: "baseline", maxVideoBitDepth: "8",  maxRefFrames: "3", maxFramerate: "30" },
-                high:     { bitrate: "2400000",  audioBitrate: "256000", level: "3.1", profile: "high",     maxVideoBitDepth: "8",  maxRefFrames: "5", maxFramerate: "30" },
-                veryHigh: { bitrate: "3500000",  audioBitrate: "256000", level: "3.1", profile: "high",     maxVideoBitDepth: "8", maxRefFrames: "16", maxFramerate: "30" }
-            },
-            "480": {
-                low:      { bitrate: "1200000",  audioBitrate: "128000", level: "3.0", profile: "baseline", maxVideoBitDepth: "8",  maxRefFrames: "1", maxFramerate: "30" },
-                medium:   { bitrate: "2400000",  audioBitrate: "192000", level: "3.1", profile: "baseline", maxVideoBitDepth: "8",  maxRefFrames: "3", maxFramerate: "30" },
-                high:     { bitrate: "4800000",  audioBitrate: "256000", level: "3.1", profile: "high",     maxVideoBitDepth: "8",  maxRefFrames: "5", maxFramerate: "30" },
-                veryHigh: { bitrate: "7000000",  audioBitrate: "256000", level: "3.1", profile: "high",     maxVideoBitDepth: "8", maxRefFrames: "16", maxFramerate: "30" }
-            },
-            "720": {
-                low:      { bitrate: "2400000",  audioBitrate: "128000", level: "3.1", profile: "baseline", maxVideoBitDepth: "8",  maxRefFrames: "1", maxFramerate: "30" },
-                medium:   { bitrate: "4800000",  audioBitrate: "192000", level: "3.1", profile: "baseline", maxVideoBitDepth: "8",  maxRefFrames: "3", maxFramerate: "30" },
-                high:     { bitrate: "9500000",  audioBitrate: "256000", level: "3.1", profile: "high",     maxVideoBitDepth: "8",  maxRefFrames: "5", maxFramerate: "30" },
-                veryHigh: { bitrate: "14000000", audioBitrate: "256000", level: "3.1", profile: "high",     maxVideoBitDepth: "8", maxRefFrames: "16", maxFramerate: "30" }
-            },
-            "1080": {
-                low:      { bitrate: "3500000",  audioBitrate: "128000", level: "3.1", profile: "baseline", maxVideoBitDepth: "8",  maxRefFrames: "1", maxFramerate: "30" },
-                medium:   { bitrate: "7000000",  audioBitrate: "192000", level: "3.1", profile: "baseline", maxVideoBitDepth: "8",  maxRefFrames: "3", maxFramerate: "30" },
-                high:     { bitrate: "14000000", audioBitrate: "256000", level: "4.0", profile: "high",     maxVideoBitDepth: "8",  maxRefFrames: "5", maxFramerate: "30" },
-                veryHigh: { bitrate: "21000000", audioBitrate: "256000", level: "4.0", profile: "high",     maxVideoBitDepth: "8", maxRefFrames: "16", maxFramerate: "30" }
-            }
-        };
-
-        // Largeur maximale (16:9) associée à chaque hauteur de #resSelect, mêmes valeurs que le client
-        // web officiel Jellyfin (426x240, 640x360, 854x480, 1280x720, 1920x1080). Envoyer maxHeight
-        // seul ne suffit pas : sur certains fichiers, le serveur l'ignore et renvoie une résolution
-        // bien supérieure à celle demandée (ex: 960x540 pour une demande en 240p) ; maxWidth doit
-        // l'accompagner pour que le plafond soit respecté. Le serveur ajuste ensuite lui-même la
-        // hauteur/largeur réelle pour respecter le ratio d'aspect de la source (un film 2.39:1 limité
-        // à 426 de large sortira donc en moins de 240 lignes, comme sur le client web officiel).
-        var RESOLUTION_MAX_WIDTH = {
-            "240": "426",
-            "360": "640",
-            "480": "854",
-            "720": "1280",
-            "1080": "1920"
-        };
-
-        // Débit maximum ("MaxBR", Annexe A du standard H.264, Table A-1) par niveau, en bps, pour les
-        // profils Baseline/Main. Le profil High multiplie ce plafond par 1.25 (cpbBrVclFactor propre à
-        // ce profil) ; c'est le seul facteur appliqué ici car baseline/main/high sont les seuls profils
-        // proposés par ce client (voir #profileSelect).
-        var H264_LEVEL_MAX_BITRATE = {
-            "3.0": 10000000,
-            "3.1": 14000000,
-            "4.0": 20000000,
-            "4.1": 50000000,
-            "4.2": 50000000,
-            "5.0": 135000000,
-            "5.1": 240000000,
-            "5.2": 240000000
-        };
-
-        function getMaxBitrateForLevelProfile(level, profile) {
-            var base = H264_LEVEL_MAX_BITRATE[level];
-            if (!base) {
-                return null;
-            }
-            return profile === "high" ? Math.round(base * 1.25) : base;
-        }
-
-        // Le champ #bitrateSelect est en Mbps (texte libre, 1 décimale) ; le reste du code (URLs de
-        // stream, estimation de taille, etc.) manipule des bps. Ces deux fonctions font la conversion
-        // aux deux points d'entrée/sortie du champ.
-        function mbpsToBps(mbpsStr) {
-            var mbps = parseFloat(String(mbpsStr).replace(",", "."));
-            return isNaN(mbps) ? NaN : Math.round(mbps * 1000000);
-        }
-
-        function bpsToMbps(bps) {
-            return (bps / 1000000).toFixed(1);
-        }
-
-        // Valide le champ de bitrate saisi librement par l'utilisateur : corrige silencieusement les
-        // valeurs invalides (négatives/nulles, ou au-delà du plafond du niveau H.264 + profil choisis)
-        // en avertissant l'utilisateur par une popup, plutôt que de laisser passer une valeur qui ferait
-        // échouer le transcodage côté serveur sans message clair. Appelée au changement du champ
-        // lui-même, mais aussi du niveau/profil (leur plafond peut rendre le bitrate déjà saisi invalide).
-        function validateBitrateInput() {
-            var input = document.getElementById("bitrateSelect");
-            var bps = mbpsToBps(input.value);
-            var maxBps = getMaxBitrateForLevelProfile(document.getElementById("levelSelect").value, document.getElementById("profileSelect").value);
-
-            if (isNaN(bps) || bps <= 0) {
-                alert(t("bitrateInvalidLow"));
-                bps = 100000;
-            } else if (maxBps && bps > maxBps) {
-                alert(t("bitrateInvalidHigh", { max: bpsToMbps(maxBps) }));
-                bps = maxBps;
-            }
-
-            input.value = bpsToMbps(bps);
-            savePlaybackPrefs();
-            updateEstimatedSize();
-        }
-
-        // Applique un préréglage qualité en fonction de la résolution actuellement choisie, sans jamais
-        // toucher à cette résolution : seuls bitrate/niveau/profil/profondeur de bits/images de
-        // référence/framerate sont ajustés.
-        function applyQualityPreset(quality) {
-            var resolution = document.getElementById("resSelect").value;
-            var presetsForResolution = QUALITY_PRESETS[resolution];
-            var preset = presetsForResolution ? presetsForResolution[quality] : null;
-            if (!preset) {
-                return;
-            }
-
-            document.getElementById("bitrateSelect").value = bpsToMbps(parseInt(preset.bitrate, 10));
-            document.getElementById("audioBitrateSelect").value = preset.audioBitrate;
-            document.getElementById("levelSelect").value = preset.level;
-            document.getElementById("profileSelect").value = preset.profile;
-            document.getElementById("maxVideoBitDepthSelect").value = preset.maxVideoBitDepth;
-            document.getElementById("maxRefFramesSelect").value = preset.maxRefFrames;
-            document.getElementById("maxFramerateSelect").value = preset.maxFramerate;
-
-            savePlaybackPrefs();
-            updateEstimatedSize();
-        }
+        var NAV_STATE_KEY = "dinosaurBooksNavState";
 
         function saveState(state) {
             try {
@@ -1182,8 +494,8 @@
         }
 
         // Mémorisation optionnelle des identifiants (via cases à cocher), indépendamment de l'état de navigation
-        var SAVED_API_KEY_KEY = "jellyDinosaurSavedApiKey";
-        var SAVED_CREDENTIALS_KEY = "jellyDinosaurSavedCredentials";
+        var SAVED_API_KEY_KEY = "dinosaurBooksSavedApiKey";
+        var SAVED_CREDENTIALS_KEY = "dinosaurBooksSavedCredentials";
 
         function saveOrForgetApiKey(remember, value) {
             try {
@@ -1242,40 +554,16 @@
             saveState({
                 serverUrl: serverUrl,
                 apiKey: apiKey,
-                view: "library",
-                libraryView: currentLibraryView,
-                // La grille de chaînes n'étant pas gardée en mémoire (une page à la fois, voir
-                // loadChannels()), sa page et sa recherche font partie de l'état à restaurer.
-                channelsQuery: channelsQuery,
-                channelsStartIndex: channelsStartIndex
+                view: "library"
             });
         }
 
-        function saveDetailState(itemId, seasonId, episodeId) {
+        function saveDetailState(itemId) {
             saveState({
                 serverUrl: serverUrl,
                 apiKey: apiKey,
                 view: "detail",
-                libraryView: currentLibraryView,
-                itemId: itemId,
-                seasonId: seasonId || null,
-                episodeId: episodeId || null
-            });
-        }
-
-        // Une chaîne ne se recharge pas comme un film (elle n'est pas dans /Items sans son type) :
-        // l'état retient qu'il s'agit d'un direct pour que la restauration reparte de
-        // /LiveTv/Channels/{id} et de la vue adaptée.
-        function saveLiveDetailState(channelId) {
-            saveState({
-                serverUrl: serverUrl,
-                apiKey: apiKey,
-                view: "detail",
-                isLive: true,
-                libraryView: "livetv",
-                itemId: channelId,
-                channelsQuery: channelsQuery,
-                channelsStartIndex: channelsStartIndex
+                itemId: itemId
             });
         }
 
@@ -1328,9 +616,8 @@
         // onError (optionnel) est appelé sur tout échec définitif (timeout ou erreur serveur), avant
         // l'affichage du bandeau d'erreur : utile pour réinitialiser un indicateur "Connexion en cours...".
         // silentOnError (optionnel) : n'affiche pas le bandeau d'erreur rouge en cas d'échec. Réservé
-        // aux requêtes purement facultatives, dont l'échec ne doit pas polluer l'écran (la TV en
-        // direct, absente ou refusée sur certains serveurs, n'a pas à se signaler par une erreur au
-        // chargement de la bibliothèque). onError est appelé normalement dans tous les cas.
+        // aux requêtes purement facultatives, dont l'échec ne doit pas polluer l'écran. onError est
+        // appelé normalement dans tous les cas.
         function ajax(url, params, callback, onError, silentOnError) {
             var query = "";
             if (!params) {
@@ -1473,110 +760,6 @@
             xhr.send(null);
         }
 
-        // Ouvrir un flux de TV en direct demande au serveur de contacter le tuner et de sonder le
-        // flux : c'est bien plus long qu'un appel d'API classique (plusieurs secondes sur une chaîne
-        // "froide"), d'où un délai d'attente dédié, très au-dessus des 10 s des autres requêtes.
-        var LIVE_OPEN_TIMEOUT_MS = 45000;
-
-        // Même chose qu'ajax(), mais en POST. Tous les paramètres passent par la query string et le
-        // corps reste vide : les endpoints utilisés ici (/LiveStreams/Open) acceptent leurs arguments
-        // des deux façons, et cela évite d'encoder un document JSON pour dire un seul mot.
-        // Le Content-Type est volontairement "text/plain" et non "application/json" :
-        // - un Content-Type absent fait répondre 400 au serveur (vérifié), il en faut donc un ;
-        // - "text/plain" fait partie des types "simples" du CORS : la requête part directement, sans
-        //   requête de contrôle OPTIONS préalable (qu'un vieux navigateur ne sait pas émettre) ;
-        // - c'est aussi le seul type que XDomainRequest (IE8/9) sait envoyer, ce qui permet de garder
-        //   le même repli cross-domain que pour les GET.
-        function ajaxPost(url, params, timeoutMs, callback, onError) {
-            var query = "";
-            if (!params) {
-                params = {};
-            }
-            params.ApiKey = apiKey;
-            for (var key in params) {
-                if (params.hasOwnProperty(key)) {
-                    query += (query === ""? "?" : "&") + encodeURIComponent(key) + "=" + encodeURIComponent(params[key]);
-                }
-            }
-
-            var fullUrl = serverUrl + url + query;
-            var settled = false;
-
-            var xdr = createCrossDomainGetRequest(fullUrl);
-            if (xdr) {
-                var xdrTimeoutTimer = setTimeout(function() {
-                    if (settled) {
-                        return;
-                    }
-                    settled = true;
-                    xdr.abort();
-                    if (onError) {
-                        onError(t("timeoutError", { seconds: timeoutMs / 1000 }));
-                    }
-                }, timeoutMs);
-                xdr.onload = function() {
-                    if (settled) {
-                        return;
-                    }
-                    settled = true;
-                    clearTimeout(xdrTimeoutTimer);
-                    callback(JSON.parse(xdr.responseText));
-                };
-                xdr.onerror = function() {
-                    if (settled) {
-                        return;
-                    }
-                    settled = true;
-                    clearTimeout(xdrTimeoutTimer);
-                    if (onError) {
-                        onError("?");
-                    }
-                };
-                xdr.open("POST", fullUrl);
-                setTimeout(function() {
-                    if (!settled) {
-                        xdr.send("");
-                    }
-                }, 0);
-                return;
-            }
-
-            tryEnableCrossDomainPrivilege();
-
-            var xhr = createXHR();
-
-            var timeoutTimer = setTimeout(function() {
-                if (settled) {
-                    return;
-                }
-                settled = true;
-                xhr.abort();
-                if (onError) {
-                    onError(t("timeoutError", { seconds: timeoutMs / 1000 }));
-                }
-            }, timeoutMs);
-
-            xhr.open("POST", fullUrl, true);
-            xhr.setRequestHeader("Content-Type", "text/plain");
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) {
-                    if (settled) {
-                        return;
-                    }
-                    settled = true;
-                    clearTimeout(timeoutTimer);
-
-                    if (xhr.status === 200) {
-                        callback(JSON.parse(xhr.responseText));
-                    } else if (xhr.status === 401) {
-                        handleUnauthorized();
-                    } else if (onError) {
-                        onError("HTTP " + xhr.status);
-                    }
-                }
-            };
-            xhr.send("");
-        }
 
         // Vérifie qu'un serveur Jellyfin répond bien à l'adresse indiquée, sans authentification
         // (endpoint public /System/Ping), avant d'autoriser à passer à l'étape suivante.
@@ -1652,17 +835,11 @@
             xhr.send(null);
         }
 
-        // Identifiant d'appareil envoyé à Jellyfin, à la fois pour l'authentification et pour les flux vidéo
-        var AUTH_DEVICE_ID = "JellyDinosaurES3";
-
-        // Explique côté serveur pourquoi le transcodage est demandé (visible dans le tableau de bord
-        // Jellyfin) : le direct play est proposé séparément (bloc "Accès au contenu (direct play)"),
-        // donc si ces paramètres sont utilisés, c'est que l'utilisateur a explicitement choisi le
-        // transcodage (réglages qualité/avancés) plutôt que le direct play.
-        var TRANSCODE_REASON = "User decided to transcode this content";
+        // Identifiant d'appareil envoyé à Jellyfin pour l'authentification
+        var AUTH_DEVICE_ID = "DinosaurBooksES3";
 
         function buildAuthorizationHeader() {
-            return 'MediaBrowser Client="JellyDinosaur", Device="Navigateur", DeviceId="' + AUTH_DEVICE_ID + '", Version="1.1.1"';
+            return 'MediaBrowser Client="DinosaurBooks", Device="Navigateur", DeviceId="' + AUTH_DEVICE_ID + '", Version="1.1.1"';
         }
 
         // Authentifie l'utilisateur par nom/mot de passe (POST /Users/AuthenticateByName).
@@ -1749,61 +926,43 @@
             xhr.send(JSON.stringify({ Username: username, Pw: password }));
         }
 
+
+        // Champs demandés aussi bien pour la liste que pour la restauration d'un livre après un
+        // rafraîchissement. "People" (auteurs) est volontairement exclu : ce champ rend la requête
+        // très lente dès qu'elle porte sur toute la bibliothèque ; il est récupéré séparément, pour
+        // un seul livre à la fois, dans showDetail(). "Path" sert à déduire le format (bookFormat()).
+        var BOOK_FIELDS = "Overview,Genres,Tags,Studios,Path";
+
         function loadLibrary(onSuccess, onError) {
-            // "People" est volontairement exclu ici : sur ce serveur, ce champ fait passer la requête
-            // de ~0.3s à plus de 50s dès qu'elle porte sur toute la bibliothèque (calcul des images
-            // par acteur pour chaque item). Le réalisateur/la distribution sont récupérés séparément,
-            // pour un seul item à la fois, dans showDetail().
-            ajax("/Items", { "IncludeItemTypes": "Movie,Series", "Recursive": "true", "StartIndex": "0", "SortBy": "SortName,ProductionYear", "SortOrder": "Ascending", "Fields": "Overview,Genres,Tags,Studios" }, function(data) {
-                var movieList = document.getElementById("movieList");
-                var seriesList = document.getElementById("seriesList");
+            ajax("/Items", { "IncludeItemTypes": "Book", "Recursive": "true", "StartIndex": "0", "SortBy": "SortName,ProductionYear", "SortOrder": "Ascending", "Fields": BOOK_FIELDS }, function(data) {
+                var bookList = document.getElementById("bookList");
+                bookList.innerHTML = "";
 
-                movieList.innerHTML = "";
-                seriesList.innerHTML = "";
-
-                var movieCount = 0;
-                var seriesCount = 0;
-                var movieItems = [];
-                var seriesItems = [];
-
-                for (var i = 0; i < data.Items.length; i++) {
-                    var item = data.Items[i];
+                var items = data.Items || [];
+                for (var i = 0; i < items.length; i++) {
                     (function(item) {
                         var div_local = document.createElement("div");
                         div_local.className = "item-entry";
-                        setText(div_local, item.Name + (item.ProductionYear ? " (" + item.ProductionYear + ")" : ""));
+                        var format = bookFormat(item);
+                        setText(div_local, item.Name + (item.ProductionYear ? " (" + item.ProductionYear + ")" : "") + (format ? " [" + format + "]" : ""));
                         div_local.onclick = function() { showDetail(item); };
                         // Référence gardée sur l'élément pour permettre un filtrage par genre
                         // purement côté navigateur (aucune requête API supplémentaire nécessaire).
                         div_local._item = item;
-
-                        if (item.Type === "Movie") {
-                            document.getElementById("movieList").appendChild(div_local);
-                            movieCount++;
-                            movieItems.push(item);
-                        } else if (item.Type === "Series") {
-                            document.getElementById("seriesList").appendChild(div_local);
-                            seriesCount++;
-                            seriesItems.push(item);
-                        }
-                    })(item);
+                        bookList.appendChild(div_local);
+                    })(items[i]);
                 }
 
-                document.getElementById("movieSearch").value = "";
-                document.getElementById("seriesSearch").value = "";
-                populateGenreFilter("movieGenreFilter", movieItems);
-                populateGenreFilter("seriesGenreFilter", seriesItems);
-                setCategoryLabels(movieCount, seriesCount);
-                loadChannelCount();
+                document.getElementById("bookSearch").value = "";
+                populateGenreFilter("bookGenreFilter", items);
+                setText(document.getElementById("booksTitle"), t("books") + " (" + items.length + ")");
+                document.getElementById("noBooks").className = items.length === 0 ? "" : "hidden";
 
                 document.getElementById("config").className = "section hidden";
                 document.getElementById("library").className = "section";
 
                 if (onSuccess) {
                     onSuccess();
-                } else {
-                    currentLibraryView = "categoryChoice";
-                    showCategoryChoice();
                 }
             }, onError);
         }
@@ -1899,8 +1058,6 @@
             showConfigStep("connectingStep");
 
             loadLibrary(function() {
-                currentLibraryView = "categoryChoice";
-                showCategoryChoice();
                 saveLibraryState();
             });
         }
@@ -1923,8 +1080,6 @@
                 document.getElementById("password").value = "";
 
                 loadLibrary(function() {
-                    currentLibraryView = "categoryChoice";
-                    showCategoryChoice();
                     saveLibraryState();
                 });
             }, function(busy) {
@@ -1956,12 +1111,6 @@
         submitOnEnterKey("password", submitLogin);
         submitOnEnterKey("serverUrl", validateServer);
 
-        function setCategoryLabels(movieCount, seriesCount) {
-            setText(document.getElementById("linkMovies"), t("movies") + " (" + movieCount + ")");
-            setText(document.getElementById("linkSeries"), t("series") + " (" + seriesCount + ")");
-            setText(document.getElementById("moviesTitle"), t("movies") + " (" + movieCount + ")");
-            setText(document.getElementById("seriesTitle"), t("series") + " (" + seriesCount + ")");
-        }
 
         // Remplit un <select> de genres à partir des items déjà chargés (pas d'appel API dédié :
         // les genres sont déduits des données en cache pour pouvoir filtrer instantanément).
@@ -2037,486 +1186,23 @@
             setText(document.getElementById(titleId), baseLabel + " (" + visibleCount + ")");
         }
 
-        var movieSearchTimer = null;
-        var seriesSearchTimer = null;
 
-        document.getElementById("movieSearch").onkeyup = function() {
+        var bookSearchTimer = null;
+
+        document.getElementById("bookSearch").onkeyup = function() {
             var value = this.value;
-            if (movieSearchTimer) {
-                clearTimeout(movieSearchTimer);
+            if (bookSearchTimer) {
+                clearTimeout(bookSearchTimer);
             }
-            movieSearchTimer = setTimeout(function() {
-                filterList("movieList", "moviesTitle", t("movies"), value, document.getElementById("movieGenreFilter").value);
+            bookSearchTimer = setTimeout(function() {
+                filterList("bookList", "booksTitle", t("books"), value, document.getElementById("bookGenreFilter").value);
             }, 500);
         };
 
-        document.getElementById("movieGenreFilter").onchange = function() {
-            filterList("movieList", "moviesTitle", t("movies"), document.getElementById("movieSearch").value, this.value);
+        document.getElementById("bookGenreFilter").onchange = function() {
+            filterList("bookList", "booksTitle", t("books"), document.getElementById("bookSearch").value, this.value);
         };
 
-        document.getElementById("seriesGenreFilter").onchange = function() {
-            filterList("seriesList", "seriesTitle", t("series"), document.getElementById("seriesSearch").value, this.value);
-        };
-
-        document.getElementById("seriesSearch").onkeyup = function() {
-            var value = this.value;
-            if (seriesSearchTimer) {
-                clearTimeout(seriesSearchTimer);
-            }
-            seriesSearchTimer = setTimeout(function() {
-                filterList("seriesList", "seriesTitle", t("series"), value, document.getElementById("seriesGenreFilter").value);
-            }, 500);
-        };
-
-        function showCategoryChoice() {
-            applyLibraryView("categoryChoice");
-        }
-
-        document.getElementById("linkMovies").onclick = function() {
-            applyLibraryView("movies");
-            currentLibraryView = "movies";
-            saveLibraryState();
-        };
-
-        document.getElementById("linkSeries").onclick = function() {
-            applyLibraryView("series");
-            currentLibraryView = "series";
-            saveLibraryState();
-        };
-
-        document.getElementById("btnBackCategoryMovies").onclick = function() {
-            showCategoryChoice();
-            currentLibraryView = "categoryChoice";
-            saveLibraryState();
-        };
-
-        document.getElementById("btnBackCategorySeries").onclick = function() {
-            showCategoryChoice();
-            currentLibraryView = "categoryChoice";
-            saveLibraryState();
-        };
-
-        // ================================ TV en direct ==========================================
-
-        // String.prototype.trim() est ES5 (absent d'IE8 et des Gecko d'avant Firefox 3.5).
-        function trimText(value) {
-            return String(value).replace(/^\s+|\s+$/g, "");
-        }
-
-        // Une seule requête, la moins chère possible (limit=0 ne renvoie aucun item, seulement le
-        // total) : elle sert uniquement à savoir s'il faut proposer l'entrée "TV en direct". Un
-        // serveur sans tuner répond 200 avec un total à 0, l'entrée reste alors masquée.
-        // En échec, silence complet (silentOnError) : la TV en direct est facultative, et un serveur
-        // qui ne répond pas sur cet endpoint ne doit pas accueillir l'utilisateur par une erreur
-        // rouge -- ni le déconnecter -- alors que sa bibliothèque vient de se charger correctement.
-        function loadChannelCount() {
-            ajax("/LiveTv/Channels", { "limit": "0" }, function(data) {
-                liveTvChannelCount = data.TotalRecordCount || 0;
-                var link = document.getElementById("linkLiveTv");
-                if (liveTvChannelCount > 0) {
-                    setText(link, t("liveTv") + " (" + liveTvChannelCount + ")");
-                    setText(document.getElementById("liveTvTitle"), t("liveTv") + " (" + liveTvChannelCount + ")");
-                    link.className = "item-entry";
-                } else {
-                    link.className = "item-entry hidden";
-                }
-            }, null, true);
-        }
-
-        // "2026-08-14T16:15:00.0000000Z" -> "18:15" dans le fuseau horaire de la machine.
-        // Le texte n'est pas donné à new Date(texte) : l'analyse d'une date ISO 8601 n'est garantie
-        // qu'à partir d'ES5 (IE8 et les vieux Gecko renvoient NaN, d'autant plus avec les 7 décimales
-        // de seconde que Jellyfin écrit). Les champs sont donc extraits à la main puis assemblés par
-        // Date.UTC() (présent depuis les toutes premières versions de JavaScript) ; Jellyfin date
-        // toujours le guide en UTC, la conversion vers l'heure locale est ensuite faite par getHours().
-        function formatProgramTime(isoDate) {
-            var parts = /^(\d\d\d\d)-(\d\d)-(\d\d)T(\d\d):(\d\d)/.exec(String(isoDate || ""));
-            if (!parts) {
-                return "";
-            }
-            var date = new Date(Date.UTC(parseInt(parts[1], 10), parseInt(parts[2], 10) - 1, parseInt(parts[3], 10),
-                                         parseInt(parts[4], 10), parseInt(parts[5], 10)));
-            if (isNaN(date.getTime())) {
-                return "";
-            }
-            var hours = date.getHours();
-            var minutes = date.getMinutes();
-            return (hours < 10 ? "0" : "") + hours + ":" + (minutes < 10 ? "0" : "") + minutes;
-        }
-
-        // Ce qui passe en ce moment sur la chaîne, quand le serveur a un guide des programmes.
-        // Beaucoup de grilles (playlists m3u sans EPG) n'en ont aucun : on renvoie alors une chaîne
-        // vide, et l'affichage se réduit au nom de la chaîne plutôt que d'aligner des blancs.
-        function currentProgramText(channel) {
-            var program = channel.CurrentProgram;
-            if (!program) {
-                return "";
-            }
-            var text = program.Name || "";
-            if (program.EpisodeTitle) {
-                text += " - " + program.EpisodeTitle;
-            }
-            var from = formatProgramTime(program.StartDate);
-            var to = formatProgramTime(program.EndDate);
-            if (from && to) {
-                text += " (" + from + "-" + to + ")";
-            }
-            return text;
-        }
-
-        // Le numéro de chaîne, quand il existe, se lit devant le nom comme sur une télécommande.
-        function channelDisplayName(channel) {
-            var number = channel.Number || channel.ChannelNumber || "";
-            return (number ? number + " - " : "") + (channel.Name || "");
-        }
-
-        function renderChannelList(items) {
-            var list = document.getElementById("channelList");
-            list.innerHTML = "";
-
-            if (items.length === 0) {
-                var empty = document.createElement("div");
-                setText(empty, t("noChannelFound"));
-                list.appendChild(empty);
-                return;
-            }
-
-            for (var i = 0; i < items.length; i++) {
-                (function(channel) {
-                    var entry = document.createElement("div");
-                    entry.className = "item-entry";
-                    var label = channelDisplayName(channel);
-                    var program = currentProgramText(channel);
-                    setText(entry, program ? label + " - " + program : label);
-                    entry.onclick = function() {
-                        showLiveDetail(channel);
-                    };
-                    list.appendChild(entry);
-                })(items[i]);
-            }
-        }
-
-        function updateChannelPager(shownCount) {
-            var info = document.getElementById("channelsPageInfo");
-            if (channelsTotalCount === 0) {
-                setText(info, "");
-            } else {
-                setText(info, " " + t("channelsPageInfo", {
-                    from: channelsStartIndex + 1,
-                    to: channelsStartIndex + shownCount,
-                    total: channelsTotalCount
-                }) + " ");
-            }
-            document.getElementById("btnChannelsPrev").disabled = channelsStartIndex <= 0;
-            document.getElementById("btnChannelsNext").disabled = (channelsStartIndex + shownCount) >= channelsTotalCount;
-        }
-
-        // Charge UNE page de la grille. Deux endpoints selon le cas, chacun en une seule requête :
-        // - navigation : /LiveTv/Channels, l'endpoint dédié, qui ne connaît en revanche aucun
-        //   paramètre de recherche (il n'en existe aucun dans sa signature) ;
-        // - recherche : /Items sur le type TvChannel, qui accepte searchTerm.
-        // Les deux renvoient le programme en cours (à la demande via addCurrentProgram pour le
-        // premier, d'office pour le second), donc l'affichage est le même dans les deux cas.
-        function loadChannels(startIndex, afterLoad) {
-            channelsStartIndex = startIndex > 0 ? startIndex : 0;
-            setText(document.getElementById("channelsPageInfo"), " " + t("loadingChannels") + " ");
-
-            function onLoaded(data) {
-                var items = data.Items || [];
-                channelsTotalCount = typeof data.TotalRecordCount === "number" ? data.TotalRecordCount : items.length;
-                renderChannelList(items);
-                updateChannelPager(items.length);
-                saveLibraryState();
-                scrollTo(0, 0);
-                // Appelé après l'enregistrement de l'état : la restauration d'une chaîne affichée
-                // enchaîne ici, pour que l'état "détail" soit écrit après l'état "bibliothèque" et
-                // ne soit pas écrasé par lui.
-                if (afterLoad) {
-                    afterLoad();
-                }
-            }
-
-            if (channelsQuery !== "") {
-                ajax("/Items", {
-                    "IncludeItemTypes": "TvChannel",
-                    "Recursive": "true",
-                    "searchTerm": channelsQuery,
-                    "SortBy": "SortName",
-                    "SortOrder": "Ascending",
-                    "StartIndex": String(channelsStartIndex),
-                    "Limit": String(CHANNELS_PAGE_SIZE),
-                    "EnableUserData": "false",
-                    "EnableImageTypes": "Primary",
-                    "ImageTypeLimit": "1"
-                }, onLoaded);
-            } else {
-                ajax("/LiveTv/Channels", {
-                    "startIndex": String(channelsStartIndex),
-                    "limit": String(CHANNELS_PAGE_SIZE),
-                    "sortBy": "SortName",
-                    "sortOrder": "Ascending",
-                    "addCurrentProgram": "true",
-                    "enableUserData": "false",
-                    "enableImageTypes": "Primary",
-                    "imageTypeLimit": "1"
-                }, onLoaded);
-            }
-        }
-
-        var channelSearchTimer = null;
-
-        document.getElementById("channelSearch").onkeyup = function() {
-            var value = this.value;
-            if (channelSearchTimer) {
-                clearTimeout(channelSearchTimer);
-            }
-            // Même temporisation que les autres champs de recherche, mais ici elle évite surtout une
-            // requête serveur par caractère tapé (la recherche de chaînes n'est pas locale).
-            channelSearchTimer = setTimeout(function() {
-                var query = trimText(value);
-                if (query === channelsQuery) {
-                    return;
-                }
-                channelsQuery = query;
-                loadChannels(0);
-            }, 500);
-        };
-
-        document.getElementById("btnChannelsPrev").onclick = function() {
-            if (channelsStartIndex > 0) {
-                loadChannels(channelsStartIndex - CHANNELS_PAGE_SIZE);
-            }
-        };
-
-        document.getElementById("btnChannelsNext").onclick = function() {
-            if (channelsStartIndex + CHANNELS_PAGE_SIZE < channelsTotalCount) {
-                loadChannels(channelsStartIndex + CHANNELS_PAGE_SIZE);
-            }
-        };
-
-        document.getElementById("linkLiveTv").onclick = function() {
-            currentLibraryView = "livetv";
-            applyLibraryView("livetv");
-            loadChannels(0);
-        };
-
-        document.getElementById("btnBackCategoryLiveTv").onclick = function() {
-            currentLibraryView = "categoryChoice";
-            applyLibraryView("categoryChoice");
-            saveLibraryState();
-        };
-
-        // Ligne d'état de la vue détail d'une chaîne (ouverture en cours, ou échec d'ouverture).
-        function setLiveStatus(message) {
-            var el = document.getElementById("liveStatus");
-            setText(el, message || "");
-            el.className = message ? "" : "hidden";
-        }
-
-        // Bascule l'ensemble de la vue détail entre un média de la bibliothèque et une chaîne en
-        // direct : un flux sans fin n'a ni durée (donc ni taille estimée, ni position de départ, ni
-        // téléchargement), ni pistes numérotées à choisir.
-        function applyLiveModeUi(isLive) {
-            function toggle(id, visible, baseClass) {
-                var el = document.getElementById(id);
-                if (!el) {
-                    return;
-                }
-                var base = baseClass || "";
-                el.className = visible ? base : (base ? base + " hidden" : "hidden");
-            }
-
-            toggle("directPlayDisclaimerFile", !isLive);
-            toggle("directPlayDisclaimerLive", isLive);
-            toggle("fileInfoBlockTitleFile", !isLive);
-            toggle("fileInfoBlockTitleLive", isLive);
-            toggle("directPlayDownloadWrap", !isLive);
-            toggle("trackConfigBlock", !isLive, "section");
-            toggle("liveTrackNote", isLive);
-            toggle("estimatedSizeBlock", !isLive);
-            toggle("startTimeRowMp4", !isLive);
-            toggle("startTimeRowFlash", !isLive);
-            toggle("downloadLinkWrap", !isLive);
-            toggle("hlsBlockTitleFile", !isLive);
-            toggle("hlsBlockTitleLive", isLive);
-
-            if (!isLive) {
-                setLiveStatus("");
-            }
-        }
-
-        function buildChannelDetailContent(channel) {
-            var container = document.createElement("div");
-
-            var imageUrl = buildPrimaryImageUrl(channel);
-            if (imageUrl) {
-                var img = document.createElement("img");
-                img.src = imageUrl;
-                img.alt = channel.Name;
-                container.appendChild(img);
-                container.appendChild(document.createElement("br"));
-            }
-
-            function addLine(label, value) {
-                if (!value) {
-                    return;
-                }
-                var line = document.createElement("div");
-                setText(line, label + " : " + value);
-                container.appendChild(line);
-            }
-
-            addLine(t("detailType"), t("channelLabel"));
-            addLine(t("channelNumberLabel"), channel.Number || channel.ChannelNumber);
-            addLine(t("currentProgramLabel"), currentProgramText(channel));
-
-            if (channel.CurrentProgram && channel.CurrentProgram.Overview) {
-                var overview = document.createElement("div");
-                setText(overview, channel.CurrentProgram.Overview);
-                container.appendChild(overview);
-            }
-
-            return container;
-        }
-
-        // Là où le tuner puise réellement, quand c'est un endroit que CE navigateur peut atteindre.
-        // Un tuner alimenté par une playlist distante (le montage classique des grilles IPTV) donne
-        // une URL http(s) absolue que le serveur déclare distante ; tout le reste (multicast relayé
-        // sur le réseau du serveur, fichier local) nomme quelque chose d'inatteignable d'ici et
-        // repasse donc par le serveur.
-        function liveOriginFrom(mediaSource) {
-            var path = mediaSource.Path;
-            if (typeof path !== "string" || !/^https?:\/\//.test(path)) {
-                return null;
-            }
-            if (mediaSource.Protocol !== "Http" || mediaSource.IsRemote !== true) {
-                return null;
-            }
-            return path;
-        }
-
-        // Le conteneur n'est pas toujours renseigné : quand le sondage de la chaîne n'aboutit pas,
-        // le serveur renvoie une source ouverte SANS conteneur (constaté sur des chaînes alimentées
-        // par un CDN distant, injoignable depuis ici). On ne devine pas dans ce cas -- ni l'adresse
-        // d'origine (que la page vient justement de montrer inatteignable), ni Static=true (qui a
-        // besoin de savoir ce qui traverse) : c'est le remux TS par le serveur qui est demandé,
-        // parce que le serveur est le seul élément dont la joignabilité est acquise.
-        function liveSourceIsPlaylist() {
-            return liveContainer === "hls";
-        }
-
-        // Un tuner doit être branché avant qu'on puisse lui demander quoi que ce soit : PlaybackInfo
-        // délivre un OpenToken, /LiveStreams/Open le transforme en flux vivant, et toutes les URLs de
-        // lecture doivent ensuite porter la MediaSource ouverte et cet identifiant de flux -- pas
-        // ceux de la chaîne.
-        //
-        // Ce n'est pas une formalité : sur un tuner qui tire du réseau local du serveur, celui-ci ne
-        // renvoie RIEN sans cette ouverture (mesuré dans le plug-in PowerVLC : flux direct vide et
-        // playlist coupée par le proxy inverse). Ce qui a pu faire croire l'inverse, c'est qu'un tuner
-        // alimenté par une playlist HLS distante, lui, sert ses URLs sans aucune ouverture préalable.
-        //
-        // Le flux n'est jamais refermé : la page n'est pas prévenue de l'arrêt de la lecture (le lien
-        // peut même avoir été copié vers un lecteur externe), et fermer un flux encore lu le tuerait.
-        // Le serveur recycle de lui-même un flux vivant resté inactif.
-        function openLiveStream(channelId) {
-            setLiveStatus(t("openingChannel"));
-
-            ajax("/Items/" + channelId + "/PlaybackInfo", {}, function(data) {
-                // L'utilisateur a pu repartir vers une autre chaîne (ou vers la bibliothèque)
-                // pendant l'attente : la réponse ne concerne alors plus ce qui est affiché.
-                if (!currentIsLive || currentPlayableId !== channelId) {
-                    return;
-                }
-
-                var sources = data.MediaSources || [];
-                var source = sources.length > 0 ? sources[0] : null;
-                if (!source) {
-                    setLiveStatus(t("liveOpenFailed", { error: "?" }));
-                    return;
-                }
-
-                // Une source qui ne délivre aucun jeton s'utilise telle quelle.
-                if (!source.OpenToken) {
-                    liveMediaSourceId = source.Id || channelId;
-                    liveContainer = source.Container ? String(source.Container).toLowerCase() : null;
-                    liveOriginUrl = liveOriginFrom(source);
-                    renderMediaTechnicalInfo(source);
-                    setLiveStatus("");
-                    return;
-                }
-
-                ajaxPost("/LiveStreams/Open", { "openToken": source.OpenToken }, LIVE_OPEN_TIMEOUT_MS, function(opened) {
-                    if (!currentIsLive || currentPlayableId !== channelId) {
-                        return;
-                    }
-                    var mediaSource = opened.MediaSource;
-                    if (!mediaSource) {
-                        setLiveStatus(t("liveOpenFailed", { error: "?" }));
-                        return;
-                    }
-                    liveMediaSourceId = mediaSource.Id || channelId;
-                    liveStreamId = mediaSource.LiveStreamId || null;
-                    liveContainer = mediaSource.Container ? String(mediaSource.Container).toLowerCase() : null;
-                    liveOriginUrl = liveOriginFrom(mediaSource);
-                    // L'ouverture sonde la source : c'est le seul moment où le serveur décrit
-                    // vraiment la chaîne (codec, résolution, débit), que l'item ne portait pas.
-                    renderMediaTechnicalInfo(mediaSource);
-                    setLiveStatus("");
-                }, function(error) {
-                    if (!currentIsLive || currentPlayableId !== channelId) {
-                        return;
-                    }
-                    // On garde quand même la source non ouverte comme repli : c'est exactement ce
-                    // dont se contentent les tuners de type playlist distante. L'échec est dit à
-                    // l'écran, car ailleurs la lecture ne démarrera tout simplement jamais.
-                    liveMediaSourceId = source.Id || channelId;
-                    liveContainer = source.Container ? String(source.Container).toLowerCase() : null;
-                    liveOriginUrl = liveOriginFrom(source);
-                    renderMediaTechnicalInfo(source);
-                    setLiveStatus(t("liveOpenFailed", { error: error }));
-                });
-            });
-        }
-
-        function showLiveDetail(channel) {
-            scrollTo(0, 0);
-            resetDownloadUI();
-
-            currentItem = channel;
-            currentIsLive = true;
-            currentPlayableId = channel.Id;
-            // Un direct n'a pas de durée : ni taille estimée, ni curseur de position.
-            currentPlayableRunTimeTicks = null;
-            liveMediaSourceId = null;
-            liveStreamId = null;
-            liveContainer = null;
-            liveOriginUrl = null;
-            updateEstimatedSize();
-            updateStartTimeSliderRange();
-
-            document.getElementById("library").className = "section hidden";
-            document.getElementById("detail").className = "section";
-            setText(document.getElementById("detailTitle"), channelDisplayName(channel));
-
-            var detailContent = document.getElementById("detailContent");
-            detailContent.innerHTML = "";
-            detailContent.appendChild(buildChannelDetailContent(channel));
-
-            document.getElementById("seriesOptions").className = "hidden";
-            applyLiveModeUi(true);
-
-            // Les pistes d'une chaîne sont toutes annoncées à l'index -1, qui n'est pas un numéro
-            // qu'on puisse demander : les listes restent vides et le transcodage s'en remet au serveur.
-            fillSelect("audioSelect", []);
-            fillSelect("subtitleSelect", []);
-            renderMediaTechnicalInfo(null);
-
-            bindPlaybackLinks();
-            openLiveStream(channel.Id);
-            saveLiveDetailState(channel.Id);
-        }
-
-        // Formate une date ISO renvoyée par l'API en date lisible
         function formatDate(isoDate) {
             if (!isoDate) {
                 return "";
@@ -2526,116 +1212,6 @@
                 return "";
             }
             return d.toLocaleDateString();
-        }
-
-        // Convertit une durée exprimée en ticks Jellyfin (unités de 100ns) en "1h 45min"
-        function formatDuration(ticks) {
-            if (!ticks) {
-                return "";
-            }
-            var totalMinutes = Math.floor(ticks / 600000000);
-            if (totalMinutes <= 0) {
-                return "";
-            }
-            var hours = Math.floor(totalMinutes / 60);
-            var minutes = totalMinutes % 60;
-            if (hours > 0) {
-                return hours + t("durationHourAbbrev") + " " + minutes + t("durationMinuteAbbrev");
-            }
-            return minutes + t("durationMinuteAbbrev");
-        }
-
-        // Formate un nombre de secondes en "1:23:45" ou "3:45" (précision à la seconde, contrairement
-        // à formatDuration ci-dessus) : utilisé pour l'affichage du slider de démarrage.
-        function formatSecondsAsTimecode(seconds) {
-            seconds = Math.max(0, Math.floor(seconds || 0));
-            var hours = Math.floor(seconds / 3600);
-            var minutes = Math.floor((seconds % 3600) / 60);
-            var secs = seconds % 60;
-            var minutesStr = (hours > 0 && minutes < 10) ? ("0" + minutes) : String(minutes);
-            var secsStr = (secs < 10) ? ("0" + secs) : String(secs);
-            if (hours > 0) {
-                return hours + ":" + minutesStr + ":" + secsStr;
-            }
-            return minutesStr + ":" + secsStr;
-        }
-
-        // Le "Démarrer à" existe en DEUX exemplaires synchronisés : #startTimeSlider (bloc mp4) et
-        // #startTimeSliderFlash (bloc flv / Flash Player), pour que l'utilisateur voie clairement
-        // qu'il s'applique aux deux blocs. #startTimeSlider est l'exemplaire de référence : les
-        // handlers de synchronisation (makeStartTimeSync) recopient la valeur du curseur manipulé
-        // vers l'autre AVANT toute lecture, donc getStartTimeTicks() n'a besoin de lire que lui.
-
-        // Recale la plage des sliders de démarrage sur la durée de l'item actuellement joignable
-        // (currentPlayableRunTimeTicks), et remet les curseurs à 0 : un instant de départ choisi pour
-        // un item ne doit pas rester appliqué au suivant. Appelée aux mêmes points que updateEstimatedSize().
-        function updateStartTimeSliderRange() {
-            var maxSeconds = currentPlayableRunTimeTicks ? Math.floor(currentPlayableRunTimeTicks / 10000000) : 0;
-            var ids = ["startTimeSlider", "startTimeSliderFlash"];
-            for (var i = 0; i < ids.length; i++) {
-                var slider = document.getElementById(ids[i]);
-                if (slider) {
-                    slider.max = maxSeconds;
-                    slider.value = 0;
-                }
-            }
-            updateStartTimeDisplay();
-        }
-
-        // Rafraîchit les DEUX affichages de temps depuis le slider de référence (les curseurs sont
-        // déjà synchronisés au moment de l'appel, voir makeStartTimeSync).
-        function updateStartTimeDisplay() {
-            var slider = document.getElementById("startTimeSlider");
-            if (!slider) {
-                return;
-            }
-            var text = formatSecondsAsTimecode(parseInt(slider.value, 10));
-            var display = document.getElementById("startTimeDisplay");
-            if (display) {
-                setText(display, text);
-            }
-            var displayFlash = document.getElementById("startTimeDisplayFlash");
-            if (displayFlash) {
-                setText(displayFlash, text);
-            }
-        }
-
-        // Fabrique le handler oninput/onchange d'un des deux sliders : recopie sa valeur vers son
-        // jumeau, puis rafraîchit les affichages. La recopie précède toute lecture de valeur, donc
-        // le slider de référence (#startTimeSlider) est toujours à jour quel que soit le curseur
-        // manipulé.
-        function makeStartTimeSync(sourceId, twinId) {
-            return function () {
-                var source = document.getElementById(sourceId);
-                var twin = document.getElementById(twinId);
-                if (source && twin) {
-                    twin.value = source.value;
-                }
-                updateStartTimeDisplay();
-            };
-        }
-
-        // Instant de départ choisi via les sliders, en ticks Jellyfin (0 si à zéro ou absents) :
-        // utilisé par buildProgressiveUrl() pour les 3 liens du bloc "Conteneur mp4" et par
-        // buildFlashUrl()/flashPlayerFlashvarsExtra() pour les liens du bloc "Conteneur flv".
-        function getStartTimeTicks() {
-            var slider = document.getElementById("startTimeSlider");
-            if (!slider) {
-                return 0;
-            }
-            var seconds = parseInt(slider.value, 10) || 0;
-            return Math.round(seconds * 10000000);
-        }
-
-        // Relit les RunTimeTicks stockés sur l'option actuellement sélectionnée d'episodeSelect
-        // (voir data-runtimeticks posé dans loadEpisodes()), utilisés pour currentPlayableRunTimeTicks.
-        function selectedEpisodeRunTimeTicks(episodeSelect) {
-            var index = episodeSelect.selectedIndex;
-            if (index < 0 || !episodeSelect.options[index]) {
-                return null;
-            }
-            var raw = episodeSelect.options[index].getAttribute("data-runtimeticks");
-            return raw ? parseInt(raw, 10) : null;
         }
 
         // Concatène une liste de chaînes (ou une propriété d'une liste d'objets) en "a, b, c"
@@ -2674,40 +1250,6 @@
             return result;
         }
 
-        // Construit un tableau Nom / Rôle pour les acteurs d'un item, ou null si aucun acteur
-        function buildCastTable(people) {
-            var actors = [];
-            if (people) {
-                for (var i = 0; i < people.length; i++) {
-                    if (people[i].Type === "Actor") {
-                        actors.push(people[i]);
-                    }
-                }
-            }
-
-            if (actors.length === 0) {
-                return null;
-            }
-
-            var table = document.createElement("table");
-            for (var j = 0; j < actors.length; j++) {
-                var row = document.createElement("tr");
-
-                var nameCell = document.createElement("td");
-                setText(nameCell, actors[j].Name);
-                row.appendChild(nameCell);
-
-                var roleCell = document.createElement("td");
-                setText(roleCell, actors[j].Role || "");
-                row.appendChild(roleCell);
-
-                table.appendChild(row);
-            }
-
-            return table;
-        }
-
-        // Construit le bloc d'informations détaillées d'un film/série (description, genres, etc.)
         // Construit l'URL de la pochette (image Primary) d'un item, en JPEG explicite
         // pour rester lisible par les très vieux navigateurs (certains ne gèrent pas WebP/PNG bien).
         function buildPrimaryImageUrl(item) {
@@ -2720,6 +1262,7 @@
                    "&tag=" + encodeURIComponent(item.ImageTags.Primary) +
                    "&ApiKey=" + apiKey;
         }
+
 
         function buildDetailContent(item) {
             var container = document.createElement("div");
@@ -2742,13 +1285,12 @@
                 container.appendChild(line);
             }
 
-            addLine(t("detailType"), item.Type === "Series" ? t("seriesLabel") : t("movieLabel"));
+            addLine(t("detailType"), t("bookLabel"));
+            addLine(t("detailAuthor"), peopleByType(item.People, "Author"));
             addLine(t("detailReleaseDate"), formatDate(item.PremiereDate) || item.ProductionYear);
-            addLine(t("detailDuration"), formatDuration(item.RunTimeTicks));
             addLine(t("detailGenres"), joinList(item.Genres));
             addLine(t("detailTags"), joinList(item.Tags));
-            addLine(t("detailDirector"), peopleByType(item.People, "Director"));
-            addLine(t("detailStudio"), joinList(item.Studios, "Name"));
+            addLine(t("detailPublisher"), joinList(item.Studios, "Name"));
 
             if (item.Overview) {
                 var overview = document.createElement("div");
@@ -2756,29 +1298,12 @@
                 container.appendChild(overview);
             }
 
-            var castTable = buildCastTable(item.People);
-            if (castTable) {
-                var castLabel = document.createElement("div");
-                setText(castLabel, t("detailCast"));
-                container.appendChild(castLabel);
-                container.appendChild(castTable);
-                container.appendChild(document.createElement("br"));
-            }
-
             return container;
         }
 
-        function showDetail(item, preferredSeasonId, preferredEpisodeId) {
+        function showDetail(item) {
             scrollTo(0, 0);
-            resetDownloadUI();
-
             currentItem = item;
-            currentIsLive = false;
-            currentPlayableId = null;
-            currentPlayableRunTimeTicks = null;
-            updateEstimatedSize();
-            updateStartTimeSliderRange();
-            applyLiveModeUi(false);
 
             document.getElementById("library").className = "section hidden";
             document.getElementById("detail").className = "section";
@@ -2788,8 +1313,8 @@
             detailContent.innerHTML = "";
             detailContent.appendChild(buildDetailContent(item));
 
-            // Réalisateur/distribution ("People") ne sont pas chargés avec la liste (trop lent en masse),
-            // on les récupère ici pour ce seul item, puis on complète l'affichage une fois arrivés.
+            // Les auteurs ("People") ne sont pas chargés avec la liste (trop lent en masse), on les
+            // récupère ici pour ce seul livre, puis on complète l'affichage une fois arrivés.
             var detailItemId = item.Id;
             ajax("/Items", { "Ids": detailItemId, "Fields": "People" }, function(data) {
                 var items = data.Items || [];
@@ -2801,909 +1326,80 @@
                 detailContent.appendChild(buildDetailContent(currentItem));
             });
 
-            var seriesOptions = document.getElementById("seriesOptions");
+            showBookDownload(item);
+            saveDetailState(item.Id);
+        }
 
-            if (item.Type === "Series") {
-                seriesOptions.className = "";
-                loadSeasons(item.Id, preferredSeasonId, preferredEpisodeId);
-            } else {
-                seriesOptions.className = "hidden";
-                currentPlayableId = item.Id;
-                currentPlayableRunTimeTicks = item.RunTimeTicks || null;
-                updateEstimatedSize();
-                updateStartTimeSliderRange();
-                loadPlaybackInfo(item.Id);
-                saveDetailState(item.Id, null, item.Id);
+        // "EPUB", "PDF"... déduit de l'extension du fichier sur le serveur ("" si inconnue) : c'est
+        // la seule information qui dit si une liseuse saura ouvrir le livre.
+        function bookFormat(item) {
+            var match = /\.([A-Za-z0-9]+)$/.exec(String(item.Path || ""));
+            return match ? match[1].toUpperCase() : "";
+        }
+
+        function showBookDownload(item) {
+            var info = document.getElementById("bookFileInfo");
+            info.innerHTML = "";
+            var format = bookFormat(item);
+            if (format) {
+                appendInfoLine(info, t("bookFormatLabel"), format);
             }
 
-            bindPlaybackLinks();
-        }
-
-        // Vrai quand il y a réellement quelque chose à lire. Pour une chaîne, cela veut aussi dire
-        // que le tuner a fini d'être ouvert : avant, les URLs construites ne porteraient ni la bonne
-        // MediaSource ni l'identifiant du flux vivant, et le serveur ne renverrait rien.
-        function playbackTargetReady() {
-            if (!currentPlayableId) {
-                alert(t("noMediaSelected"));
-                return false;
-            }
-            if (currentIsLive && !liveMediaSourceId) {
-                alert(t("liveNotReady"));
-                return false;
-            }
-            return true;
-        }
-
-        // Les liens de lecture sont les mêmes pour un média de la bibliothèque et pour une chaîne :
-        // ce sont les constructeurs d'URL qui savent lequel des deux est affiché (currentIsLive).
-        function bindPlaybackLinks() {
-            document.getElementById("directPlayStreamLink").onclick = function() {
-                if (!playbackTargetReady()) {
-                    return false;
-                }
-                copyToClipboard(buildDirectPlayUrl());
-                return false;
-            };
-
-            document.getElementById("directPlayPlayLink").onclick = function() {
-                if (!playbackTargetReady()) {
-                    return false;
-                }
-                playDirectInBrowser(buildDirectPlayUrl());
-                return false;
-            };
-
-            document.getElementById("directPlayDownloadLink").onclick = function() {
-                if (!playbackTargetReady()) {
-                    return false;
-                }
-                directPlayDownload();
-                return false;
-            };
-
-            document.getElementById("streamLink").onclick = function() {
-                if (!playbackTargetReady()) {
-                    return false;
-                }
-                copyToClipboard(buildHlsUrl());
-                return false;
-            };
-
-            document.getElementById("progressiveStreamLink").onclick = function() {
-                if (!playbackTargetReady()) {
-                    return false;
-                }
-                copyToClipboard(buildProgressiveUrl());
-                return false;
-            };
-
-            document.getElementById("playLink").onclick = function() {
-                if (!playbackTargetReady()) {
-                    return false;
-                }
-                playInBrowser(buildProgressiveUrl());
-                return false;
-            };
-
-            document.getElementById("playFlashLink").onclick = function() {
-                if (!playbackTargetReady()) {
-                    return false;
-                }
-                playFlashInBrowser(buildFlashUrl());
-                return false;
-            };
-
-            document.getElementById("flashProjectorLink").onclick = function() {
-                if (!playbackTargetReady()) {
-                    return false;
-                }
-                copyToClipboard(buildFlashProjectorUrl(buildFlashUrl()));
-                return false;
-            };
-
-            document.getElementById("playHlsLink").onclick = function() {
-                if (!playbackTargetReady()) {
-                    return false;
-                }
-                playHlsInBrowser(buildHlsUrl());
-                return false;
-            };
-
-            document.getElementById("downloadLink").onclick = function() {
-                if (!playbackTargetReady()) {
-                    return false;
-                }
-                downloadStream();
+            // Jellyfin envoie le fichier d'origine avec un Content-Disposition portant son vrai nom.
+            var url = serverUrl + "/Items/" + item.Id + "/Download?ApiKey=" + apiKey;
+            var link = document.getElementById("bookDownloadLink");
+            link.href = url;
+            link.onclick = function() {
+                bookDownload(url);
                 return false;
             };
         }
 
-        // Récupère les réglages de lecture choisis par l'utilisateur (résolution, bitrate, piste audio/sous-titre, encodage)
-        function getPlaybackSelection() {
-            var audioSelect = document.getElementById("audioSelect");
-            var subtitleSelect = document.getElementById("subtitleSelect");
-
-            var res = document.getElementById("resSelect").value;
-
-            return {
-                res: res,
-                maxWidth: RESOLUTION_MAX_WIDTH[res],
-                bitrate: String(mbpsToBps(document.getElementById("bitrateSelect").value)),
-                audioBitrate: document.getElementById("audioBitrateSelect").value,
-                level: document.getElementById("levelSelect").value,
-                profile: document.getElementById("profileSelect").value,
-                maxVideoBitDepth: document.getElementById("maxVideoBitDepthSelect").value,
-                maxRefFrames: document.getElementById("maxRefFramesSelect").value,
-                maxFramerate: document.getElementById("maxFramerateSelect").value,
-                audioIdx: audioSelect.options.length > 0 ? audioSelect.value : "0",
-                subIdx: subtitleSelect.options.length > 0 ? subtitleSelect.value : "-1",
-                playSessionId: newPlaySessionId()
-            };
-        }
-
-        // Identifie la session de lecture côté serveur (visible dans le tableau de bord Jellyfin,
-        // et ce qui lui permet d'arrêter le transcodage qui lui appartient).
-        function newPlaySessionId() {
-            return "jellydinosaur" + (new Date()).getTime() + Math.floor(Math.random() * 1000000);
-        }
-
-        // Ce que toute URL de lecture d'une chaîne doit porter : la MediaSource sur laquelle le tuner
-        // a été ouvert, et le flux vivant qui le maintient ouvert -- pas l'Id de la chaîne. Une
-        // chaîne qui n'a rien eu à ouvrir retombe sur son propre Id, ce à quoi répondent les tuners
-        // alimentés par une playlist m3u.
-        function liveSourceParams() {
-            return "&mediaSourceId=" + encodeURIComponent(liveMediaSourceId || currentPlayableId) +
-                   (liveStreamId ? "&liveStreamId=" + encodeURIComponent(liveStreamId) : "");
-        }
-
-        // Estime la taille totale du contenu transcodé (bitrate vidéo + audio choisis, multiplié par la
-        // durée totale connue via currentPlayableRunTimeTicks), pour aider un utilisateur avec une
-        // connexion limitée à ajuster les réglages de qualité. C'est une estimation : le bitrate demandé
-        // est une cible/plafond pour l'encodeur, pas une valeur constante garantie.
-        function updateEstimatedSize() {
-            var estimatedSizeText = document.getElementById("estimatedSizeText");
-            if (!estimatedSizeText) {
-                return;
-            }
-
-            if (!currentPlayableRunTimeTicks) {
-                setText(estimatedSizeText, t("estimatedSizeUnknown"));
-                return;
-            }
-
-            var videoBitRate = mbpsToBps(document.getElementById("bitrateSelect").value);
-            var audioBitRate = parseInt(document.getElementById("audioBitrateSelect").value, 10);
-            var durationSeconds = currentPlayableRunTimeTicks / 10000000;
-            var totalBytes = (videoBitRate + audioBitRate) * durationSeconds / 8;
-
-            setText(estimatedSizeText, "~ " + formatBytes(totalBytes));
-        }
-
-        // Lien HLS : à utiliser avec un lecteur externe (VLC, etc.) qui gère nativement le HLS, ou avec
-        // hls.js / le support HLS natif du navigateur (voir playHlsInBrowser()).
+        // Requête préalable, avortée dès réception des en-têtes (avant tout transfert du corps), pour
+        // détecter un compte sans la permission "Téléchargement" avant de laisser le navigateur gérer
+        // le téléchargement nativement. Ce endpoint renvoie 401 (et pas 403) quand la clé API est
+        // valide mais que la permission manque : les deux sont donc traités comme un refus de
+        // permission plutôt que d'appeler handleUnauthorized() (une session réellement expirée sera
+        // détectée par les autres requêtes).
         //
-        // On pointe volontairement vers main.m3u8 (la playlist média) plutôt que master.m3u8 (la
-        // playlist maîtresse/variante) : ce serveur Jellyfin génère un master.m3u8 dont l'attribut
-        // CODECS ne déclare que l'audio (ex: CODECS="mp4a.40.2"), jamais le codec vidéo. hls.js doit
-        // alors deviner le codec vidéo en inspectant les segments, ce qui a provoqué un écran noir
-        // (son présent, vidéo absente) sur Edge et Brave pour certains fichiers. main.m3u8 n'a pas cet
-        // attribut CODECS à interpréter : hls.js détecte le codec uniquement depuis les segments, un
-        // chemin plus robuste. Comme il n'y a de toute façon qu'une seule qualité disponible (pas de
-        // vraie playlist adaptative), master.m3u8 n'apporte rien ici ; main.m3u8 fonctionne aussi bien
-        // en lecture directe pour un lecteur externe (VLC accepte une playlist média sans wrapper).
-        //
-        // Note sur le plafond de bitrate observé : le niveau H.264 (level) impose une limite de débit
-        // "VBV" indépendante du bitrate demandé (Annexe A du standard H.264). Pour le niveau 3.1 en
-        // profil baseline (les valeurs par défaut ici), ce plafond tourne autour de 14 Mbps : demander
-        // un videoBitRate plus élevé n'a alors aucun effet, le transcodeur le ramène à la limite du niveau.
-        // C'est pourquoi level/profile sont maintenant configurables (voir #levelSelect/#profileSelect) :
-        // passer en profil "high" et/ou un niveau supérieur (4.1+) est nécessaire pour dépasser ce plafond.
-        //
-        // Une chaîne en direct passe par live.m3u8 et non main.m3u8 : main.m3u8 est la playlist d'un
-        // fichier, et demandée sur une chaîne le serveur répond 500 (vérifié). Aucune ouverture de
-        // flux n'est nécessaire pour CETTE requête -- le serveur branche le tuner à la volée -- mais
-        // l'ouverture faite à l'affichage de la chaîne reste nécessaire pour désigner la bonne
-        // MediaSource (voir liveSourceParams()).
-        function buildHlsUrl() {
-            var sel = getPlaybackSelection();
-            // Les pistes ne portent un numéro que sur un fichier ; sur une chaîne il n'y a rien à
-            // numéroter, et un index que le serveur ne sait pas retrouver est pire que pas d'index.
-            var trackParams = currentIsLive ? "" :
-                   ("&subtitleMethod=Encode" +
-                    "&audioStreamIndex=" + sel.audioIdx +
-                    "&subtitleStreamIndex=" + sel.subIdx);
-
-            return serverUrl + "/Videos/" + currentPlayableId + (currentIsLive ? "/live.m3u8?" : "/main.m3u8?") +
-                   "ApiKey=" + apiKey +
-                   "&VideoCodec=h264" +
-                   "&AudioCodec=aac" +
-                   "&maxHeight=" + sel.res +
-                   "&maxWidth=" + sel.maxWidth +
-                   "&profile=" + sel.profile +
-                   "&level=" + sel.level +
-                   "&videoBitRate=" + sel.bitrate +
-                   "&maxAudioChannels=2" +
-                   "&AudioSampleRate=44100" +
-                   "&audioBitRate=" + sel.audioBitrate +
-                   "&enableAudioVbrEncoding=false" +
-                   "&maxVideoBitDepth=" + sel.maxVideoBitDepth +
-                   "&maxRefFrames=" + sel.maxRefFrames +
-                   "&maxFramerate=" + sel.maxFramerate +
-                   trackParams +
-                   "&deviceId=" + AUTH_DEVICE_ID +
-                   "&playSessionId=" + sel.playSessionId +
-                   (currentIsLive ? liveSourceParams() : "&mediaSourceId=" + currentPlayableId) +
-                   "&transcodeReasons=" + encodeURIComponent(TRANSCODE_REASON);
-        }
-
-        // Corps commun aux deux liens progressifs ci-dessous : seul le conteneur (mp4 ou flv) les
-        // distingue, tout le reste (réglages de qualité, pistes, position de départ, désignation de
-        // la source en direct) est rigoureusement identique.
-        function buildProgressiveUrlForContainer(container) {
-            var sel = getPlaybackSelection();
-            // Sur une chaîne : aucune piste à numéroter (toutes annoncées à l'index -1), et aucune
-            // position de départ possible dans un flux sans fin.
-            var trackParams = currentIsLive ? "" :
-                   ("&subtitleMethod=Encode" +
-                    "&audioStreamIndex=" + sel.audioIdx +
-                    "&subtitleStreamIndex=" + sel.subIdx);
-            var startTimeTicks = currentIsLive ? 0 : getStartTimeTicks();
-
-            return serverUrl + "/Videos/" + currentPlayableId + "/Stream?" +
-                   "ApiKey=" + apiKey +
-                   "&VideoCodec=h264" +
-                   "&AudioCodec=aac" +
-                   "&maxHeight=" + sel.res +
-                   "&maxWidth=" + sel.maxWidth +
-                   "&container=" + container +
-                   "&profile=" + sel.profile +
-                   "&level=" + sel.level +
-                   "&videoBitRate=" + sel.bitrate +
-                   "&maxAudioChannels=2" +
-                   "&AudioSampleRate=44100" +
-                   "&audioBitRate=" + sel.audioBitrate +
-                   "&enableAudioVbrEncoding=false" +
-                   "&maxVideoBitDepth=" + sel.maxVideoBitDepth +
-                   "&maxRefFrames=" + sel.maxRefFrames +
-                   "&maxFramerate=" + sel.maxFramerate +
-                   trackParams +
-                   "&deviceId=" + AUTH_DEVICE_ID +
-                   "&playSessionId=" + sel.playSessionId +
-                   (currentIsLive ? liveSourceParams() : "") +
-                   "&transcodeReasons=" + encodeURIComponent(TRANSCODE_REASON) +
-                   (startTimeTicks > 0 ? "&startTimeTicks=" + startTimeTicks : "");
-        }
-
-        // Lien progressif (mp4) : lu directement par une balise <video> native, sans dépendre du support HLS du navigateur
-        function buildProgressiveUrl() {
-            return buildProgressiveUrlForContainer("mp4");
-        }
-
-        // Lien progressif dédié à Flash Player (conteneur FLV, pas MP4) : le flux /Stream en MP4 est
-        // fragmenté (moov minimal suivi de paires moof/mdat en continu, nécessaire pour transcoder en
-        // temps réel), une structure que le NetStream de Flash Player ne sait pas lire en lecture
-        // progressive (d'où un lecteur qui charge mais reste bloqué à 0:00, écran noir). Le conteneur
-        // FLV n'a pas ce problème : c'est un format de tags séquentiels (audio/vidéo/métadonnées)
-        // nativement conçu pour être diffusé et lu au fur et à mesure, sans connaître la durée totale à
-        // l'avance -- exactement le format d'origine de Flash Video. Vérifié en conditions réelles
-        // (ffprobe + inspection des tags FLV) : H.264 Baseline + AAC, tags bien interleaved, lisible en
-        // flux. Flash Player ne supporte que H.264 (et les anciens codecs Sorenson Spark/VP6) : VP9 n'a
-        // jamais été implémenté dans Flash Player, quel que soit le conteneur.
-        // Le "Démarrer à" des liens mp4 s'applique aussi ici (le lecteur Flash n'a aucun seek
-        // intégré, voir JellyDinosaurFlashPlayer.as, le positionnement passe entièrement par ce
-        // paramètre) -- sauf sur une chaîne en direct, où il n'y a pas de position à choisir.
-        function buildFlashUrl() {
-            return buildProgressiveUrlForContainer("flv");
-        }
-
-        // Lien "direct play" : sert le fichier original tel quel (Static=true), sans transcodage.
-        // La lecture ne fonctionnera que si le navigateur sait nativement décoder le conteneur/les
-        // codecs source (ce n'est pas garanti, contrairement aux flux transcodés ci-dessus).
-        //
-        // Une chaîne en direct se sert de la même façon dès que le tuner délivre un flux de
-        // transport : Static=true le fait traverser tel quel, donc TOUT arrive -- les quatre pistes
-        // audio d'Arte (français, allemand, VO, audiodescription) et ses sous-titres télétexte, là
-        // où le transcodage n'en garderait qu'une seule et abandonnerait les sous-titres.
-        //
-        // Deux exceptions, quand le tuner est lui-même alimenté par une playlist (voir
-        // liveSourceIsPlaylist()) :
-        // - le serveur ne peut pas la faire traverser (Static=true relaie alors le m3u8 du tuner,
-        //   dont les noms de segments sont relatifs au tuner et répondent 404 sous l'adresse du
-        //   serveur) : il faut lui demander un remux TS avec les deux codecs copiés ;
-        // - et si le serveur nous a dit d'où il tire (playlist distante joignable d'ici), autant
-        //   suivre la même playlist que lui : elle livre la playlist maîtresse complète -- toutes les
-        //   qualités, toutes les pistes audio et sous-titres annoncées -- alors que le remux du
-        //   serveur n'en fait passer qu'une seule.
-        function buildDirectPlayUrl() {
-            if (currentIsLive) {
-                var isPlaylist = liveSourceIsPlaylist();
-                if (liveOriginUrl && isPlaylist) {
-                    return liveOriginUrl;
-                }
-                var passthrough = !isPlaylist && !!liveContainer;
-                return serverUrl + "/Videos/" + currentPlayableId + "/stream.ts?" +
-                       "ApiKey=" + apiKey +
-                       (passthrough ? "&Static=true" : "&Container=ts&VideoCodec=copy&AudioCodec=copy") +
-                       liveSourceParams() +
-                       "&deviceId=" + AUTH_DEVICE_ID +
-                       "&playSessionId=" + newPlaySessionId();
+        // Le fichier est ensuite ouvert dans la page elle-même (location.href) plutôt que dans un
+        // nouvel onglet : appelé depuis une réponse asynchrone, window.open serait bloqué comme popup
+        // par la plupart des navigateurs, et les navigateurs de liseuse n'ont souvent pas d'onglets.
+        // Le serveur répond en pièce jointe, la page reste donc affichée. Si la vérification est
+        // impossible (XHR cross-domain refusé sur un vieux navigateur, statut illisible), on laisse
+        // le serveur trancher en suivant le lien quand même.
+        function bookDownload(url) {
+            var xhr = createXHR();
+            var handled = false;
+            function follow() {
+                location.href = url;
             }
-            return serverUrl + "/Videos/" + currentPlayableId + "/stream?" +
-                   "Static=true" +
-                   "&mediaSourceId=" + currentPlayableId +
-                   "&deviceId=" + AUTH_DEVICE_ID +
-                   "&ApiKey=" + apiKey;
-        }
-
-        // Lien de téléchargement "officiel" Jellyfin (fichier original, avec le bon nom de fichier via
-        // Content-Disposition) : nécessite la permission "Téléchargement" sur le compte utilisé, à la
-        // différence du lien de streaming direct play ci-dessus.
-        function buildDownloadUrl() {
-            return serverUrl + "/Items/" + currentPlayableId + "/Download?ApiKey=" + apiKey;
-        }
-
-        // Ouvre le flux progressif dans un nouvel onglet : le navigateur affiche son lecteur natif.
-        // Firefox (et la plupart des vieux navigateurs) ne savent pas lire du HLS nativement,
-        // donc on n'utilise jamais master.m3u8 ici, seulement le mp4 progressif.
-        function playInBrowser(url) {
-            window.open(url, "_blank");
-        }
-
-        // Vrai si l'URL désigne une playlist HLS. Le test porte sur l'extension et s'arrête à la
-        // query string / l'ancre, une playlist étant très souvent servie avec des paramètres
-        // (jetons, identifiants de session) collés derrière le ".m3u8".
-        function isHlsPlaylistUrl(url) {
-            return /\.m3u8($|[?#])/.test(String(url));
-        }
-
-        // Le direct play d'une chaîne en direct n'est pas toujours un flux : quand le tuner tire
-        // d'une playlist distante, c'est CETTE playlist qui est servie (voir buildDirectPlayUrl()).
-        // Ouverte telle quelle dans un onglet, aucun navigateur hors Safari ne sait quoi en faire --
-        // Firefox la télécharge comme un fichier texte -- alors que hls.js la lit très bien. On
-        // aiguille donc sur le lecteur HLS dès que l'URL est une playlist, et sur l'ouverture directe
-        // sinon (un fichier de la bibliothèque, ou un flux de transport que rien ne lira nativement
-        // dans un navigateur de toute façon).
-        // Cette playlist appartient au tuner, pas au serveur Jellyfin : le CDN qui la sert n'autorise
-        // pas forcément la lecture depuis une autre origine (constaté), et hls.js abandonne alors
-        // sur une erreur réseau. Le repli à conseiller ici est donc le stream transcodé (servi par
-        // Jellyfin, sans cette restriction), ou un lecteur externe -- pas le mp4 progressif, qui
-        // butera sur exactement le même mur.
-        function playDirectInBrowser(url) {
-            if (isHlsPlaylistUrl(url)) {
-                playHlsInBrowser(url, "hlsFatalErrorLiveOrigin");
-                return;
-            }
-            playInBrowser(url);
-        }
-
-        // URL de hls.js : servie localement (fichier hls.min.js du projet, plus aucun CDN externe pour
-        // des raisons de sécurité), chargée uniquement à la demande, à l'intérieur du nouvel onglet
-        // ouvert par playHlsInBrowser() : les navigateurs récents comme Firefox ou Chrome ne savent pas
-        // lire un flux HLS (m3u8) nativement, seulement via MediaSource Extensions + un remuxeur comme
-        // hls.js. Safari sait le faire nativement et n'a donc pas besoin de cette librairie.
-        // Calculée en URL absolue (et non un simple chemin relatif) car ce script est injecté dans le
-        // document d'un nouvel onglet vierge (about:blank), qui n'a pas la même base d'URL que la page
-        // principale : hls.min.js doit se trouver dans le même dossier que index.html.
-        var HLS_JS_URL = location.href.replace(/[^\/]*$/, "") + "hls.min.js";
-
-        // Ouvre un nouvel onglet avec un lecteur <video> autonome, pour avoir le même comportement
-        // que le bouton "Streamer (vieux navigateurs, sans avance rapide)" (qui ouvre aussi un nouvel
-        // onglet). Tout (élément vidéo, chargement de hls.js, instance Hls) est créé dans le contexte
-        // du nouvel onglet plutôt que dans celui de la page principale, pour éviter des soucis de
-        // MediaSource inter-fenêtres.
-        // Lance la lecture d'une balise <video>, en avalant une éventuelle erreur "autoplay bloqué"
-        // (politique du navigateur) : les contrôles restent visibles, l'utilisateur peut alors lancer
-        // la lecture manuellement.
-        // fatalMessageKey (optionnel) : quoi dire si la lecture échoue définitivement. Le conseil
-        // utile n'est pas le même selon l'origine du flux (voir playDirectInBrowser()), d'où ce
-        // paramètre plutôt qu'un message unique qui serait à côté de la plaque dans un cas sur deux.
-        function playHlsInBrowser(url, fatalMessageKey) {
-            var newWindow = window.open("", "_blank");
-            if (!newWindow) {
-                alert(t("popupBlocked"));
-                return;
-            }
-
-            var doc = newWindow.document;
-            doc.title = t("streamButton");
-
-            var style = doc.createElement("style");
-            style.appendChild(doc.createTextNode("html,body{margin:0;height:100%;background:#000;}video{width:100%;height:100%;}"));
-            doc.head.appendChild(style);
-
-            var video = doc.createElement("video");
-            video.setAttribute("controls", "controls");
-            video.setAttribute("autoplay", "autoplay");
-            doc.body.appendChild(video);
-
-            if (video.canPlayType && video.canPlayType("application/vnd.apple.mpegurl")) {
-                video.src = url;
-                return;
-            }
-
-            if (newWindow.MediaSource || newWindow.WebKitMediaSource) {
-                var script = doc.createElement("script");
-                script.onload = function() {
-                    var HlsCtor = newWindow.Hls;
-                    if (!HlsCtor || !HlsCtor.isSupported()) {
-                        newWindow.alert(t("hlsNotSupported"));
+            try {
+                xhr.open("GET", url, true);
+                xhr.onreadystatechange = function() {
+                    if (handled || xhr.readyState < 2) {
                         return;
                     }
-                    var hls = new HlsCtor();
-                    // Sans ceci, un échec définitif laisse un onglet noir et muet. Le cas est réel
-                    // sur le direct play d'une chaîne : l'URL lue est alors la playlist du tuner,
-                    // servie par un CDN tiers qui n'autorise pas forcément la lecture depuis une
-                    // autre origine (CORS) -- hls.js abandonne alors sans rien afficher. On le dit,
-                    // et on renvoie vers le lien à copier dans un lecteur externe, qui lui n'a
-                    // aucune de ces restrictions.
-                    hls.on(HlsCtor.Events.ERROR, function(event, data) {
-                        if (data && data.fatal) {
-                            newWindow.alert(t(fatalMessageKey || "hlsFatalError"));
-                        }
-                    });
-                    hls.loadSource(url);
-                    hls.attachMedia(video);
-                };
-                script.onerror = function() {
-                    newWindow.alert(t("hlsJsLoadError"));
-                };
-                script.src = HLS_JS_URL;
-                doc.head.appendChild(script);
-                return;
-            }
-
-            newWindow.alert(t("hlsNotSupported"));
-        }
-
-        // URL absolue du lecteur SWF bundlé localement dans le projet (jellydinosaur-flash-player.swf,
-        // lecteur minimal écrit et compilé spécifiquement pour ce projet, source dans flash-player-src/
-        // JellyDinosaurFlashPlayer.as) : même logique que HLS_JS_URL, nécessaire car injecté dans le
-        // document d'un nouvel onglet vierge sans base d'URL propre. Volontairement sans habillage
-        // graphique (pas de barre de progression) : un lecteur tiers plus riche (MediaElement.js) posait
-        // un bug d'affichage avec les flux à durée inconnue (transcodage en direct), sa barre de
-        // progression calculant currentTime/duration avec duration=0. Ici, juste un compteur de temps
-        // écoulé en texte (pas de division par une durée totale, donc pas de ce problème) ; lecture/pause
-        // au clic ou à la barre d'espace, avance/recul de 10s aux flèches gauche/droite.
-        var FLASH_SWF_URL = location.href.replace(/[^\/]*$/, "") + "jellydinosaur-flash-player.swf";
-
-        // Détecte le plug-in Flash Player pour Internet Explorer (ActiveX) : fiable, car IE ne renvoie
-        // jamais un objet ActiveX instanciable pour un ProgID absent. Sert de filtre rapide pour éviter
-        // d'ouvrir un onglet inutile dans le cas évident où IE n'a pas Flash.
-        function isFlashPlayerAvailableActiveX() {
-            try {
-                return !!(new ActiveXObject("ShockwaveFlash.ShockwaveFlash"));
-            } catch (e) {
-                return false;
-            }
-        }
-
-        // navigator.plugins (navigateurs de la famille Netscape : Firefox, vieux Chrome/Safari/Opera)
-        // n'est PAS fiable pour détecter Flash sur les navigateurs récents : par mesure anti-fingerprinting,
-        // les navigateurs modernes renvoient une liste de plug-ins générique/normalisée qui peut donner un
-        // faux positif (Flash "détecté" alors qu'il ne l'est pas), comme observé sur Firefox récent où
-        // l'onglet Flash s'ouvrait avec une page noire au lieu du message d'erreur attendu. Cette
-        // vérification ne sert donc qu'à écarter le cas évident (liste de plug-ins vide) ; la vérification
-        // définitive se fait après coup, une fois le SWF réellement intégré (voir verifyFlashEmbed ci-dessous).
-        function isFlashPlayerAvailableNetscape() {
-            return !!(navigator.plugins && navigator.plugins.length > 0 && navigator.plugins["Shockwave Flash"]);
-        }
-
-        // Vérifie, après intégration du SWF, que le plug-in Flash a réellement instancié le lecteur :
-        // un vrai objet Flash Player expose des méthodes comme PercentLoaded une fois chargé, alors qu'un
-        // <embed>/<object> sans plug-in réel reste un élément DOM inerte sans ces méthodes. C'est la même
-        // technique que celle utilisée historiquement par SWFObject.js pour fiabiliser la détection.
-        function verifyFlashEmbed(el) {
-            try {
-                return typeof el.PercentLoaded === "function";
-            } catch (e) {
-                return false;
-            }
-        }
-
-        // Flashvars complémentaires du lecteur Flash (voir jellydinosaur-flash-player.swf) :
-        // - knownduration : durée réelle totale (secondes), connue côté client via RunTimeTicks, car le
-        //   flux FLV transcodé en direct rapporte duration=0 (durée finale inconnue de Jellyfin) ;
-        //   nécessaire pour afficher "temps écoulé / durée totale" et positionner la barre de progression.
-        // - estimatedbitrate : débit vidéo+audio demandé (bits/seconde), pour estimer la portion déjà
-        //   chargée (bytesLoaded / débit) : le serveur ne renvoie pas de Content-Length (réponse HTTP
-        //   chunked), donc bytesTotal reste à 0 côté Flash, rendant bytesLoaded/bytesTotal inutilisable.
-        // - startseconds : position absolue (secondes) correspondant au début du flux, c'est-à-dire le
-        //   startTimeTicks du "Démarrer à" posé par buildFlashUrl() ; le lecteur n'ayant aucun seek,
-        //   c'est ce qui lui permet d'afficher le temps réel et non un temps repartant de 0:00.
-        function flashPlayerFlashvarsExtra() {
-            var extra = "";
-            if (currentPlayableRunTimeTicks) {
-                var seconds = Math.round(currentPlayableRunTimeTicks / 10000000);
-                if (seconds > 0) {
-                    extra += "&knownduration=" + seconds;
-                }
-            }
-            var sel = getPlaybackSelection();
-            var bitrate = (parseInt(sel.bitrate, 10) || 0) + (parseInt(sel.audioBitrate, 10) || 0);
-            if (bitrate > 0) {
-                extra += "&estimatedbitrate=" + bitrate;
-            }
-            var startTimeTicks = getStartTimeTicks();
-            if (startTimeTicks > 0) {
-                extra += "&startseconds=" + Math.round(startTimeTicks / 10000000);
-            }
-            return extra;
-        }
-
-        // Construit un lien vers le SWF lui-même, avec les flashvars passées en paramètres de requête de
-        // son URL de chargement : un Projecteur Flash Standalone (application autonome, indépendante du
-        // navigateur, distribuée par Adobe et facilement trouvable en version sans killswitch) lit ces
-        // paramètres via LoaderInfo.parameters exactement comme des flashvars classiques. Utile sur une
-        // machine rétro sans plug-in navigateur installable, en évitant complètement la détection Flash
-        // côté navigateur (qui peut échouer, voir isFlashPlayerAvailableNetscape ci-dessus).
-        function buildFlashProjectorUrl(url) {
-            return FLASH_SWF_URL + "?autoplay=true&file=" + encodeURIComponent(url) + flashPlayerFlashvarsExtra();
-        }
-
-        // Ouvre un nouvel onglet et y lit le flux mp4 progressif via le plug-in Flash Player : pour les
-        // très vieux navigateurs qui savent lire du H.264/AAC en MP4 via Flash (technique de repli très
-        // répandue avant l'arrivée de la balise <video>), mais n'ont pas de support HTML5 vidéo du tout.
-        function playFlashInBrowser(url) {
-            var isOldIE = navigator.userAgent.indexOf("MSIE") !== -1;
-
-            // Filtre rapide : dans le cas évident où le navigateur n'a manifestement pas Flash, on évite
-            // d'ouvrir un onglet pour rien. Le cas ambigu (faux positif possible) est tranché plus loin,
-            // après intégration réelle du SWF.
-            if (isOldIE && !isFlashPlayerAvailableActiveX()) {
-                alert(t("flashNotAvailable"));
-                return;
-            }
-            if (!isOldIE && !(navigator.plugins && navigator.plugins.length > 0)) {
-                alert(t("flashNotAvailable"));
-                return;
-            }
-
-            var newWindow = window.open("", "_blank");
-            if (!newWindow) {
-                alert(t("popupBlocked"));
-                return;
-            }
-
-            var doc = newWindow.document;
-            doc.title = t("streamButtonFlash");
-
-            var style = doc.createElement("style");
-            style.appendChild(doc.createTextNode("html,body{margin:0;height:100%;background:#000;}"));
-            doc.head.appendChild(style);
-
-            var flashvars = "autoplay=true&file=" + encodeURIComponent(url) + flashPlayerFlashvarsExtra();
-
-            var container = doc.createElement("div");
-            container.style.width = "100%";
-            container.style.height = "100%";
-
-            if (isOldIE) {
-                container.innerHTML =
-                    '<object classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" codebase="//download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab" id="jellydinosaurflash" width="100%" height="100%">' +
-                    '<param name="movie" value="' + FLASH_SWF_URL + '" />' +
-                    '<param name="flashvars" value="' + flashvars + '" />' +
-                    '<param name="quality" value="high" />' +
-                    '<param name="bgcolor" value="#000000" />' +
-                    '<param name="wmode" value="transparent" />' +
-                    '<param name="allowFullScreen" value="true" />' +
-                    '</object>';
-            } else {
-                container.innerHTML =
-                    '<embed id="jellydinosaurflash" play="true" loop="false" quality="high" bgcolor="#000000" wmode="transparent" ' +
-                    'allowfullscreen="true" type="application/x-shockwave-flash" pluginspage="//www.macromedia.com/go/getflashplayer" ' +
-                    'src="' + FLASH_SWF_URL + '" flashvars="' + flashvars + '" width="100%" height="100%"></embed>';
-            }
-
-            doc.body.appendChild(container);
-
-            // Vérification définitive après un court délai (le temps que le plug-in, s'il existe
-            // vraiment, instancie l'objet Flash) : si l'objet n'expose pas l'API Flash réelle, c'est
-            // que le plug-in n'est en fait pas installé (faux positif de la détection préalable) ;
-            // on remplace alors la page noire par un message d'erreur clair.
-            newWindow.setTimeout(function() {
-                var el = doc.getElementById("jellydinosaurflash");
-                if (!el || !verifyFlashEmbed(el)) {
-                    doc.body.removeChild(container);
-                    var msg = doc.createElement("p");
-                    msg.style.cssText = "color:#fff;font-family:sans-serif;padding:2em;";
-                    msg.appendChild(doc.createTextNode(t("flashNotAvailable")));
-                    doc.body.appendChild(msg);
-                }
-            }, 1000);
-        }
-
-        // Remplace les caractères invalides dans un nom de fichier par "_"
-        function sanitizeFileName(name) {
-            return name.replace(/[\\\/:*?"<>|]/g, "_");
-        }
-
-        // Nom de fichier basé sur le film, ou sur "Série - Ép. X - Titre" pour un épisode,
-        // au lieu d'un nom générique comme "Stream".
-        function getDownloadFileName() {
-            var name = "video";
-
-            if (currentItem) {
-                if (currentItem.Type === "Series") {
-                    var episodeSelect = document.getElementById("episodeSelect");
-                    var episodeLabel = (episodeSelect.options.length > 0 && episodeSelect.selectedIndex >= 0)
-                        ? episodeSelect.options[episodeSelect.selectedIndex].text
-                        : "";
-                    name = currentItem.Name + (episodeLabel ? " - " + episodeLabel : "");
-                } else {
-                    name = currentItem.Name;
-                }
-            }
-
-            return sanitizeFileName(name) + ".mp4";
-        }
-
-        var downloadInProgress = false;
-        var currentDownloadXhr = null;
-
-        // Formate un nombre d'octets en "12.3 Mo" / "12.3 MB" etc. (unité traduite selon la langue)
-        function formatBytes(bytes) {
-            if (bytes >= 1073741824) {
-                return (bytes / 1073741824).toFixed(1) + " " + t("byteUnitGB");
-            }
-            if (bytes >= 1048576) {
-                return (bytes / 1048576).toFixed(1) + " " + t("byteUnitMB");
-            }
-            if (bytes >= 1024) {
-                return (bytes / 1024).toFixed(1) + " " + t("byteUnitKB");
-            }
-            return bytes + " " + t("byteUnitB");
-        }
-
-        // Télécharge le flux progressif (qui respecte résolution/bitrate/piste audio/sous-titres choisis)
-        // via un Blob, pour pouvoir forcer à la fois le téléchargement et le nom de fichier :
-        // Jellyfin n'envoie pas de Content-Disposition sur ce endpoint, et l'attribut HTML "download"
-        // n'est pas respecté par les navigateurs pour une ressource cross-origin.
-        // Navigateurs sans Blob/URL.createObjectURL ni responseType XHR2 (ex. IE6/vieux Firefox) :
-        // pas de suivi de progression possible, on dégrade vers un téléchargement direct sans barre
-        // de progression plutôt que de planter (voir downloadStream()).
-        function supportsBlobDownload() {
-            return !!(window.Blob && window.URL && window.URL.createObjectURL && "responseType" in createXHR());
-        }
-
-        function downloadStream() {
-            if (downloadInProgress) {
-                return;
-            }
-
-            if (!supportsBlobDownload()) {
-                window.open(buildProgressiveUrl(), "_blank");
-                return;
-            }
-
-            downloadInProgress = true;
-
-            var fileName = getDownloadFileName();
-
-            var downloadLink = document.getElementById("downloadLink");
-            var progressContainer = document.getElementById("downloadProgress");
-            var progressBar = document.getElementById("downloadProgressBar");
-            var progressText = document.getElementById("downloadProgressText");
-
-            downloadLink.className = "hidden";
-            progressBar.removeAttribute("value");
-            setText(progressText, "");
-            progressContainer.className = "";
-
-            var xhr = createXHR();
-            currentDownloadXhr = xhr;
-            xhr.open("GET", buildProgressiveUrl(), true);
-            xhr.responseType = "blob";
-
-            xhr.onprogress = function(event) {
-                if (event.lengthComputable) {
-                    var percent = Math.floor((event.loaded / event.total) * 100);
-                    progressBar.value = percent;
-                    setText(progressText, formatBytes(event.loaded) + " / " + formatBytes(event.total) + " (" + percent + "%)");
-                } else {
-                    setText(progressText, formatBytes(event.loaded));
-                }
-            };
-
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) {
-                    downloadInProgress = false;
-                    currentDownloadXhr = null;
-                    progressContainer.className = "hidden";
-                    downloadLink.className = "";
-
-                    if (xhr.status === 200) {
-                        var blobUrl = URL.createObjectURL(xhr.response);
-                        var tempLink = document.createElement("a");
-                        tempLink.href = blobUrl;
-                        tempLink.download = fileName;
-                        document.body.appendChild(tempLink);
-                        tempLink.click();
-                        document.body.removeChild(tempLink);
-                        setTimeout(function() {
-                            URL.revokeObjectURL(blobUrl);
-                        }, 60000);
-                    } else if (xhr.status === 401) {
-                        handleUnauthorized();
-                    } else if (xhr.status !== 0) {
-                        showError(t("serverError", { code: xhr.status }));
-                    }
-                }
-            };
-            xhr.send(null);
-        }
-
-        function cancelDownload() {
-            if (currentDownloadXhr) {
-                currentDownloadXhr.abort();
-            }
-        }
-
-        // Annule un téléchargement en cours et remet l'UI à zéro, pour éviter qu'un téléchargement
-        // lancé sur un item reste affiché (ou continue en arrière-plan) après avoir changé d'item.
-        function resetDownloadUI() {
-            cancelDownload();
-            downloadInProgress = false;
-            document.getElementById("downloadProgress").className = "hidden";
-            document.getElementById("downloadLink").className = "";
-        }
-
-        // Téléchargement direct play (voir buildDownloadUrl) : contrairement au téléchargement
-        // transcodé (downloadStream ci-dessus), Jellyfin envoie déjà un Content-Disposition avec le bon
-        // nom de fichier sur cet endpoint, donc pas besoin du contournement par Blob. On fait juste une
-        // requête préalable, avortée dès réception des en-têtes (avant tout transfert du corps), pour
-        // détecter un compte sans la permission "Téléchargement" avant de laisser le navigateur gérer
-        // le téléchargement nativement.
-        //
-        // Ce endpoint renvoie 401 (et pas 403) quand la clé API est valide mais que le compte n'a pas la
-        // permission "Téléchargement" (vérifié empiriquement sur le serveur de test) : on ne peut donc
-        // pas distinguer ce cas d'une vraie session expirée par le seul code HTTP. On traite les deux
-        // (401 et 403) comme un refus de permission plutôt que d'appeler handleUnauthorized() ici : si la
-        // session était réellement expirée, les autres requêtes (bibliothèque, PlaybackInfo...)
-        // déclencheront de toute façon la redirection vers l'écran de connexion.
-        function directPlayDownload() {
-            var url = buildDownloadUrl();
-            var xhr = createXHR();
-            xhr.open("GET", url, true);
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 2) {
-                    var status = xhr.status;
+                    var status = 0;
+                    try {
+                        status = xhr.status;
+                    } catch (e) {}
+                    handled = true;
                     xhr.abort();
-                    if (status === 200) {
-                        window.open(url, "_blank");
-                    } else if (status === 401 || status === 403) {
+                    if (status === 401 || status === 403) {
                         alert(t("downloadForbidden"));
-                    } else if (status !== 0) {
+                    } else if (status === 200 || status === 0) {
+                        follow();
+                    } else {
                         showError(t("serverError", { code: status }));
                     }
-                }
-            };
-            xhr.send(null);
-        }
-
-        // Récupère la liste des saisons d'une série et remplit seasonSelect
-        function loadSeasons(seriesId, preferredSeasonId, preferredEpisodeId) {
-            ajax("/Shows/" + seriesId + "/Seasons", {}, function(data) {
-                var seasonSelect = document.getElementById("seasonSelect");
-                seasonSelect.innerHTML = "";
-
-                var items = data.Items || [];
-                for (var i = 0; i < items.length; i++) {
-                    var season = items[i];
-                    var opt = document.createElement("option");
-                    opt.value = season.Id;
-                    opt.text = season.Name;
-                    seasonSelect.appendChild(opt);
-                }
-
-                if (preferredSeasonId) {
-                    seasonSelect.value = preferredSeasonId;
-                }
-
-                seasonSelect.onchange = function() {
-                    loadEpisodes(seriesId, seasonSelect.value);
                 };
-
-                if (items.length > 0) {
-                    loadEpisodes(seriesId, seasonSelect.value, preferredEpisodeId);
-                } else {
-                    document.getElementById("episodeSelect").innerHTML = "";
-                    fillSelect("audioSelect", []);
-                    fillSelect("subtitleSelect", []);
-                    renderMediaTechnicalInfo(null);
-                }
-            });
+                xhr.send(null);
+            } catch (e) {
+                follow();
+            }
         }
 
-        // Récupère les épisodes d'une saison et remplit episodeSelect
-        function loadEpisodes(seriesId, seasonId, preferredEpisodeId) {
-            ajax("/Shows/" + seriesId + "/Episodes", { "seasonId": seasonId }, function(data) {
-                var episodeSelect = document.getElementById("episodeSelect");
-                episodeSelect.innerHTML = "";
-
-                var items = data.Items || [];
-                for (var i = 0; i < items.length; i++) {
-                    var episode = items[i];
-                    var opt = document.createElement("option");
-                    opt.value = episode.Id;
-                    opt.setAttribute("data-runtimeticks", episode.RunTimeTicks || "");
-                    var label = "";
-                    if (typeof episode.IndexNumber !== "undefined") {
-                        label += t("episodeAbbrev") + " " + episode.IndexNumber + " - ";
-                    }
-                    label += episode.Name;
-                    var episodeDuration = formatDuration(episode.RunTimeTicks);
-                    if (episodeDuration) {
-                        label += " (" + episodeDuration + ")";
-                    }
-                    opt.text = label;
-                    episodeSelect.appendChild(opt);
-                }
-
-                if (preferredEpisodeId) {
-                    episodeSelect.value = preferredEpisodeId;
-                }
-
-                episodeSelect.onchange = function() {
-                    currentPlayableId = episodeSelect.value;
-                    currentPlayableRunTimeTicks = selectedEpisodeRunTimeTicks(episodeSelect);
-                    updateEstimatedSize();
-                    updateStartTimeSliderRange();
-                    loadPlaybackInfo(episodeSelect.value);
-                    saveDetailState(seriesId, seasonId, currentPlayableId);
-                };
-
-                if (items.length > 0) {
-                    currentPlayableId = episodeSelect.value;
-                    currentPlayableRunTimeTicks = selectedEpisodeRunTimeTicks(episodeSelect);
-                    updateEstimatedSize();
-                    updateStartTimeSliderRange();
-                    loadPlaybackInfo(episodeSelect.value);
-                    saveDetailState(seriesId, seasonId, currentPlayableId);
-                } else {
-                    currentPlayableId = null;
-                    currentPlayableRunTimeTicks = null;
-                    updateEstimatedSize();
-                    updateStartTimeSliderRange();
-                    fillSelect("audioSelect", []);
-                    fillSelect("subtitleSelect", []);
-                    renderMediaTechnicalInfo(null);
-                }
-            });
-        }
-
-        // Interroge PlaybackInfo pour connaître les vraies pistes audio/sous-titres du média
-        function loadPlaybackInfo(itemId) {
-            ajax("/Items/" + itemId + "/PlaybackInfo", {}, function(data) {
-                var audioOptions = [];
-                var subtitleOptions = [{ value: "-1", text: t("noSubtitle") }];
-
-                var mediaSources = data.MediaSources || [];
-                if (mediaSources.length > 0) {
-                    var streams = mediaSources[0].MediaStreams || [];
-                    for (var i = 0; i < streams.length; i++) {
-                        var stream = streams[i];
-                        var label = stream.DisplayTitle;
-                        if (!label) {
-                            label = (stream.Language || "?") + " (" + (stream.Codec || "?") + ")";
-                        }
-
-                        if (stream.Type === "Audio") {
-                            audioOptions.push({ value: String(stream.Index), text: label });
-                        } else if (stream.Type === "Subtitle") {
-                            subtitleOptions.push({ value: String(stream.Index), text: label });
-                        }
-                    }
-                }
-
-                fillSelect("audioSelect", audioOptions);
-                fillSelect("subtitleSelect", subtitleOptions);
-                renderMediaTechnicalInfo(mediaSources.length > 0 ? mediaSources[0] : null);
-            });
-        }
-
-        // Ajoute une ligne "label : valeur" dans container, sauf si value est absente (undefined/null/
-        // chaîne vide) : sert à ne pas afficher un champ que le compte utilisé n'a pas le droit de voir
-        // (ex : Chemin, souvent réservé aux clés API/comptes admin) plutôt que d'afficher une ligne vide.
         function appendInfoLine(container, label, value) {
             if (value === undefined || value === null || value === "") {
                 return;
@@ -3712,120 +1408,6 @@
             setText(line, label + " : " + value);
             container.appendChild(line);
         }
-
-        // Distingue "valeur booléenne absente" (on n'affiche rien) de "valeur booléenne à false"
-        // (on affiche "Non") : un simple `if (!value)` traiterait les deux cas de la même façon.
-        function formatBoolean(value) {
-            if (value === undefined || value === null) {
-                return null;
-            }
-            return value ? t("yes") : t("no");
-        }
-
-        function formatBitrate(bitsPerSecond) {
-            if (!bitsPerSecond) {
-                return null;
-            }
-            if (bitsPerSecond >= 1000000) {
-                return (bitsPerSecond / 1000000).toFixed(1) + " Mbps";
-            }
-            return Math.round(bitsPerSecond / 1000) + " kbps";
-        }
-
-        // Affiche les informations techniques brutes du fichier/flux vidéo source (issues de
-        // PlaybackInfo, donc du média original, pas du flux transcodé) dans les blocs "Fichier" et
-        // "Vidéo" du direct play. Certains champs (notamment Chemin) ne sont renvoyés par Jellyfin que
-        // pour les comptes ayant les droits suffisants (clé API/admin) : ils sont simplement omis sinon.
-        function renderMediaTechnicalInfo(mediaSource) {
-            var fileContainer = document.getElementById("fileInfoContent");
-            var videoContainer = document.getElementById("videoInfoContent");
-            fileContainer.innerHTML = "";
-            videoContainer.innerHTML = "";
-
-            if (!mediaSource) {
-                return;
-            }
-
-            appendInfoLine(fileContainer, t("fileInfoContainer"), mediaSource.Container);
-            appendInfoLine(fileContainer, t("fileInfoPath"), mediaSource.Path);
-            // Une chaîne en direct n'a pas de taille : quand le tuner est alimenté par une playlist,
-            // le serveur remplit quand même ce champ avec la taille du fichier m3u8 (quelques Ko),
-            // ce qui ne veut rien dire pour un flux sans fin.
-            appendInfoLine(fileContainer, t("fileInfoSize"), (!currentIsLive && mediaSource.Size) ? formatBytes(mediaSource.Size) : null);
-
-            var streams = mediaSource.MediaStreams || [];
-            var videoStream = null;
-            for (var i = 0; i < streams.length; i++) {
-                if (streams[i].Type === "Video") {
-                    videoStream = streams[i];
-                    break;
-                }
-            }
-            if (!videoStream) {
-                return;
-            }
-
-            var resolution = (videoStream.Width && videoStream.Height) ? (videoStream.Width + "x" + videoStream.Height) : null;
-            var framerate = videoStream.RealFrameRate || videoStream.AverageFrameRate;
-
-            appendInfoLine(videoContainer, t("videoInfoTitle"), videoStream.Title);
-            appendInfoLine(videoContainer, t("videoInfoCodec"), videoStream.Codec);
-            appendInfoLine(videoContainer, t("videoInfoAvc"), formatBoolean(videoStream.IsAVC));
-            appendInfoLine(videoContainer, t("videoInfoProfile"), videoStream.Profile);
-            appendInfoLine(videoContainer, t("videoInfoLevel"), videoStream.Level);
-            appendInfoLine(videoContainer, t("videoInfoResolution"), resolution);
-            appendInfoLine(videoContainer, t("videoInfoAspectRatio"), videoStream.AspectRatio);
-            appendInfoLine(videoContainer, t("videoInfoAnamorphic"), formatBoolean(videoStream.IsAnamorphic));
-            appendInfoLine(videoContainer, t("videoInfoInterlaced"), formatBoolean(videoStream.IsInterlaced));
-            appendInfoLine(videoContainer, t("videoInfoFramerate"), framerate);
-            appendInfoLine(videoContainer, t("videoInfoBitrate"), formatBitrate(videoStream.BitRate));
-            appendInfoLine(videoContainer, t("videoInfoBitDepth"), videoStream.BitDepth);
-            appendInfoLine(videoContainer, t("videoInfoRange"), videoStream.VideoRange);
-            appendInfoLine(videoContainer, t("videoInfoRangeType"), videoStream.VideoRangeType);
-            appendInfoLine(videoContainer, t("videoInfoPixelFormat"), videoStream.PixelFormat);
-            appendInfoLine(videoContainer, t("videoInfoRefFrames"), videoStream.RefFrames);
-            appendInfoLine(videoContainer, t("videoInfoNal"), videoStream.NalLengthSize);
-        }
-
-        function fillSelect(id, options) {
-            var select = document.getElementById(id);
-            select.innerHTML = "";
-            for (var i = 0; i < options.length; i++) {
-                var opt = document.createElement("option");
-                opt.value = options[i].value;
-                opt.text = options[i].text;
-                select.appendChild(opt);
-            }
-        }
-
-        // Sur certains très vieux navigateurs (ex : Safari 5.1), document.execCommand("copy")
-        // n'existe pas ou échoue silencieusement : on affiche alors le lien en clair via prompt()
-        // (supporté quasiment partout) pour que l'utilisateur puisse le copier manuellement.
-        function copyToClipboard(text) {
-            var copied = false;
-            try {
-                var textArea = document.createElement("textarea");
-                textArea.value = text;
-                textArea.style.position = "fixed";
-                textArea.style.left = "-1000px";
-                document.body.appendChild(textArea);
-                textArea.select();
-                copied = !!(document.execCommand && document.execCommand("copy"));
-                document.body.removeChild(textArea);
-            } catch (e) {
-                copied = false;
-            }
-
-            if (copied) {
-                alert(t("linkCopied"));
-            } else {
-                window.prompt(t("copyStreamLinkFallback"), text);
-            }
-        }
-
-        document.getElementById("btnCancelDownload").onclick = function() {
-            cancelDownload();
-        };
 
         document.getElementById("btnBack").onclick = function() {
             document.getElementById("library").className = "section hidden";
@@ -3836,24 +1418,12 @@
 
         document.getElementById("btnBackLibrary").onclick = function() {
             scrollTo(0, 0);
-            resetDownloadUI();
             document.getElementById("detail").className = "section hidden";
             document.getElementById("library").className = "section";
             saveLibraryState();
         };
 
         // Restaure la navigation après un rafraîchissement de page, à partir de l'état sauvegardé
-        // Affiche la bonne sous-vue de la bibliothèque (choix de catégorie, films ou séries),
-        // indépendamment de la vue "detail" éventuellement affichée par-dessus.
-        function applyLibraryView(view) {
-            var known = { categoryChoice: true, movies: true, series: true, livetv: true };
-            var shown = known.hasOwnProperty(view) ? view : "categoryChoice";
-            document.getElementById("categoryChoice").className = shown === "categoryChoice" ? "" : "hidden";
-            document.getElementById("movies").className = shown === "movies" ? "" : "hidden";
-            document.getElementById("series").className = shown === "series" ? "" : "hidden";
-            document.getElementById("livetv").className = shown === "livetv" ? "" : "hidden";
-        }
-
         function restoreNavigation() {
             var state = loadState();
             if (!state || !state.serverUrl || !state.apiKey) {
@@ -3867,89 +1437,18 @@
             // obtenu par login/mot de passe, pas une vraie clé API. Le préremplissage du champ
             // ApiKey est géré uniquement par restoreSavedCredentials(), à partir de SAVED_API_KEY_KEY,
             // qui n'est renseigné que par une connexion réussie via le formulaire "Clé API".
-            currentLibraryView = state.libraryView || "categoryChoice";
-            channelsQuery = state.channelsQuery || "";
-            channelsStartIndex = state.channelsStartIndex || 0;
 
             loadLibrary(function() {
-                // On restaure d'abord la sous-vue de la bibliothèque (elle reste "en dessous"
-                // même si on affiche ensuite la vue détail par-dessus), pour que le bouton
-                // "Retour" ramène bien sur la bonne liste (Films/Séries) après un rafraîchissement.
-                applyLibraryView(currentLibraryView);
-
-                if (currentLibraryView === "livetv") {
-                    document.getElementById("channelSearch").value = channelsQuery;
-                    // La grille n'est pas gardée en mémoire : la page où on se trouvait est
-                    // redemandée au serveur, puis la chaîne affichée par-dessus s'il y en avait une.
-                    loadChannels(channelsStartIndex, function() {
-                        if (state.view !== "detail" || !state.isLive || !state.itemId) {
-                            return;
-                        }
-                        ajax("/LiveTv/Channels/" + state.itemId, {}, function(channel) {
-                            if (channel && channel.Id) {
-                                showLiveDetail(channel);
-                            }
-                        });
-                    });
-                    return;
-                }
-
                 if (state.view === "detail" && state.itemId) {
-                    ajax("/Items", { "Ids": state.itemId, "Fields": "Overview,Genres,Tags,Studios" }, function(data) {
+                    ajax("/Items", { "Ids": state.itemId, "Fields": BOOK_FIELDS }, function(data) {
                         var items = data.Items || [];
-                        if (items.length === 0) {
-                            currentLibraryView = "categoryChoice";
-                            applyLibraryView(currentLibraryView);
-                            return;
+                        if (items.length > 0) {
+                            showDetail(items[0]);
                         }
-                        showDetail(items[0], state.seasonId, state.episodeId);
                     });
                 }
             });
         }
-
-        document.getElementById("resSelect").onchange = savePlaybackPrefs;
-        document.getElementById("bitrateSelect").onchange = validateBitrateInput;
-        // oninput (retour en direct pendant le glisser, navigateurs récents) et onchange (au relâchement,
-        // couvre aussi les vieux navigateurs sans support de oninput sur un <input type="range">) pointent
-        // tous deux vers la même fonction, idempotente.
-        // Les deux exemplaires du "Démarrer à" (blocs mp4 et flv) se synchronisent mutuellement.
-        // oninput pour le suivi en direct du glissement, onchange en filet de sécurité pour les
-        // navigateurs qui ne connaissent pas oninput (voir le commentaire du bloc mp4).
-        var syncStartTimeFromMain = makeStartTimeSync("startTimeSlider", "startTimeSliderFlash");
-        var syncStartTimeFromFlash = makeStartTimeSync("startTimeSliderFlash", "startTimeSlider");
-        document.getElementById("startTimeSlider").oninput = syncStartTimeFromMain;
-        document.getElementById("startTimeSlider").onchange = syncStartTimeFromMain;
-        document.getElementById("startTimeSliderFlash").oninput = syncStartTimeFromFlash;
-        document.getElementById("startTimeSliderFlash").onchange = syncStartTimeFromFlash;
-        document.getElementById("audioBitrateSelect").onchange = function() {
-            savePlaybackPrefs();
-            updateEstimatedSize();
-        };
-        document.getElementById("levelSelect").onchange = function() {
-            savePlaybackPrefs();
-            validateBitrateInput();
-        };
-        document.getElementById("profileSelect").onchange = function() {
-            savePlaybackPrefs();
-            validateBitrateInput();
-        };
-        document.getElementById("maxVideoBitDepthSelect").onchange = savePlaybackPrefs;
-        document.getElementById("maxRefFramesSelect").onchange = savePlaybackPrefs;
-        document.getElementById("maxFramerateSelect").onchange = savePlaybackPrefs;
-
-        document.getElementById("btnQualityLow").onclick = function() {
-            applyQualityPreset("low");
-        };
-        document.getElementById("btnQualityMedium").onclick = function() {
-            applyQualityPreset("medium");
-        };
-        document.getElementById("btnQualityHigh").onclick = function() {
-            applyQualityPreset("high");
-        };
-        document.getElementById("btnQualityVeryHigh").onclick = function() {
-            applyQualityPreset("veryHigh");
-        };
 
         document.getElementById("btnLangFr").onclick = function() {
             currentLang = "fr";
@@ -3985,7 +1484,6 @@
         if (savedLang === "fr" || savedLang === "en") {
             currentLang = savedLang;
             applyTranslations();
-            restorePlaybackPrefs();
 
             // S'il y a une session à restaurer, on affiche "Connexion en cours..." plutôt que
             // l'interface de connexion, pour éviter le scintillement le temps du chargement.

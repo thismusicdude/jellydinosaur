@@ -81,8 +81,6 @@ if (!fs.existsSync(OUT_DIR)) {
     fs.mkdirSync(OUT_DIR);
 }
 fs.writeFileSync(path.join(OUT_DIR, "index.html"), finalHtml, "utf8");
-fs.copyFileSync(path.join(ROOT, "jellydinosaur-flash-player.swf"), path.join(OUT_DIR, "jellydinosaur-flash-player.swf"));
-fs.copyFileSync(path.join(ROOT, "hls.min.js"), path.join(OUT_DIR, "hls.min.js"));
 
 fs.unlinkSync(jsSrcPath);
 fs.unlinkSync(jsOutPath);
